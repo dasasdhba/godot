@@ -1,4 +1,78 @@
-# Godot Engine
+# Godot Moon
+
+This is my personal customized Godot Branch.
+
+## Changement
+
+### Custom prefix of C# signal
+
+In official builds, the custom C# signal is just general C# event, while the signals of godot's build-in nodes are all based on godot signal. I personally prefer the approach of godot signal, since it will automatically disconnect signals when relevant nodes exit the tree.
+
+It's possible to use godot signal in C# by using `Connect`, but it's very inconvenient compared to `+=` approach. I altered the C# source generator to provide an easier way to use custom C# signal with godot signal approach.
+
+In short, now the attribute `[Signal]` will generate three extra C# events:
+
+```csharp
+[Signal]
+public delegate void TimeoutEventHandler();
+
+public override void _Ready()
+{
+    // general C# event approach, we have to do `-=` manually
+    Timeout += SomeFunc();
+
+    // godot signal approach, equivalent to godot `Connect`
+    SignalTimeout += SomeFunc();
+
+    // godot signal with oneshot flag
+    SignalOneshotTimeout += SomeFunc();
+
+    // general C# event approach with simple oneshot support
+    OneshotTimeout += SomeFunc();
+}
+```
+
+By the way, here are also some tricks for better signal emitting and async waiting.
+
+```csharp
+// equivalent to EmitSignal(SignalName.Timeout)
+// this is actually supported by official builds already
+// though I prefer this to be public sometimes.
+EmitSignalTimeout();
+
+// equivalent to ToSignal(this, SignalName.Timeout)
+TimeoutAsync();
+```
+
+### `TweenExtensions` for `C#`
+
+Writing `Tween.TweenCallback(Callable.From(someFunc))` is annoyed, with `TweenExtensions` we can just write `Tween.TweenCallback(someFunc)` instead.
+
+### `move_and_slide(delta)`
+
+`move_and_slide` method of `CharacterBody2D/3D` now needs a `delta` parameter.
+
+This provide an easy way to implement game speed control (e.g. gimmicks in Braid) by scaling the `delta` parameter.
+
+### `intersect_ray/shape` returns an object instead of dictionary
+
+Godot's variant dictionary is pretty slow. As the critical part of physics overlapping test, I changed the return type of `intersect_ray/shape` to an object just like `KinematicCollision2D/3D`, which provides a much better performance.
+
+### Expose `_edit_use_rect` etc.
+
+Current approach is very hacky and has to be familiar with the source code to use it. Unless a huge refactor, there is no good way to solve this.
+
+### AnimatedSprite2DProcessCallback
+
+Allow AnimatedSprite2D processing in physics, which can make it safe to sync with physics.
+
+### Some minor bugfix in the upstream
+
+Just some bugfix as I needed.
+
+## Godot Engine
+
+The followings are the original README content of Godot engine.
 
 <p align="center">
   <a href="https://godotengine.org">
