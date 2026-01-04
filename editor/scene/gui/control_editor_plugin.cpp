@@ -817,7 +817,7 @@ void ControlEditorToolbar::_anchors_preset_selected(int p_preset) {
 		if (control) {
 			undo_redo->add_do_property(control, "layout_mode", LayoutMode::LAYOUT_MODE_ANCHORS);
 			undo_redo->add_do_property(control, "anchors_preset", preset);
-			undo_redo->add_undo_method(control, "_edit_set_state", control->_edit_get_state());
+			undo_redo->add_undo_method(control, "edit_set_state", control->edit_get_state());
 		}
 	}
 
@@ -845,7 +845,7 @@ void ControlEditorToolbar::_anchors_to_current_ratio() {
 			undo_redo->add_do_method(control, "set_meta", "_edit_use_anchors_", true);
 
 			const bool use_anchors = control->get_meta("_edit_use_anchors_", false);
-			undo_redo->add_undo_method(control, "_edit_set_state", control->_edit_get_state());
+			undo_redo->add_undo_method(control, "edit_set_state", control->edit_get_state());
 			if (use_anchors) {
 				undo_redo->add_undo_method(control, "set_meta", "_edit_use_anchors_", true);
 			} else {

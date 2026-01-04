@@ -811,8 +811,8 @@ void RuntimeNodeSelect::_update_selection() {
 		// Fallback.
 		Rect2 rect = Rect2(Vector2(), Vector2(10, 10));
 
-		if (ci->_edit_use_rect()) {
-			rect = ci->_edit_get_rect();
+		if (ci->edit_use_rect()) {
+			rect = ci->edit_get_rect();
 		} else {
 #ifndef PHYSICS_2D_DISABLED
 			CollisionShape2D *collision_shape = Object::cast_to<CollisionShape2D>(ci);
@@ -1068,7 +1068,7 @@ void RuntimeNodeSelect::_find_canvas_items_at_pos(const Point2 &p_pos, Node *p_n
 
 	xform = (xform * ci->get_transform()).affine_inverse();
 	const real_t local_grab_distance = xform.basis_xform(Vector2(sel_2d_grab_dist, 0)).length() / view_2d_zoom;
-	if (ci->_edit_is_selected_on_click(xform.xform(pos), local_grab_distance)) {
+	if (ci->edit_is_selected_on_click(xform.xform(pos), local_grab_distance)) {
 		SelectResult res;
 		res.item = ci;
 		res.order = ci->get_effective_z_index() + ci->get_canvas_layer();
@@ -1130,8 +1130,8 @@ void RuntimeNodeSelect::_find_canvas_items_at_rect(const Rect2 &p_rect, Node *p_
 	rect = (xform * ci->get_transform()).affine_inverse().xform(rect);
 
 	bool selected = false;
-	if (ci->_edit_use_rect()) {
-		Rect2 ci_rect = ci->_edit_get_rect();
+	if (ci->edit_use_rect()) {
+		Rect2 ci_rect = ci->edit_get_rect();
 		if (rect.has_point(ci_rect.position) &&
 				rect.has_point(ci_rect.position + Vector2(ci_rect.size.x, 0)) &&
 				rect.has_point(ci_rect.position + Vector2(ci_rect.size.x, ci_rect.size.y)) &&
