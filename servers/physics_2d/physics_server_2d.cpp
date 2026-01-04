@@ -334,31 +334,53 @@ void PhysicsShapeQueryParameters2D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "collide_with_areas"), "set_collide_with_areas", "is_collide_with_areas_enabled");
 }
 
+void PhysicsRayQueryResult2D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_position"), &PhysicsRayQueryResult2D::get_position);
+	ClassDB::bind_method(D_METHOD("get_normal"), &PhysicsRayQueryResult2D::get_normal);
+	ClassDB::bind_method(D_METHOD("get_rid"), &PhysicsRayQueryResult2D::get_rid);
+	ClassDB::bind_method(D_METHOD("get_collider_id"), &PhysicsRayQueryResult2D::get_collider_id);
+	ClassDB::bind_method(D_METHOD("get_collider"), &PhysicsRayQueryResult2D::get_collider);
+	ClassDB::bind_method(D_METHOD("get_shape"), &PhysicsRayQueryResult2D::get_shape);
+}
+
+void PhysicsShapeQueryResults2D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_collision_count"), &PhysicsShapeQueryResults2D::get_collision_count);
+	ClassDB::bind_method(D_METHOD("get_rid", "index"), &PhysicsShapeQueryResults2D::get_rid);
+	ClassDB::bind_method(D_METHOD("get_collider_id", "index"), &PhysicsShapeQueryResults2D::get_collider_id);
+	ClassDB::bind_method(D_METHOD("get_collider", "index"), &PhysicsShapeQueryResults2D::get_collider);
+	ClassDB::bind_method(D_METHOD("get_shape", "index"), &PhysicsShapeQueryResults2D::get_shape);
+}
+
+void PhysicsShapeRestInfo2D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_point"), &PhysicsShapeRestInfo2D::get_point);
+	ClassDB::bind_method(D_METHOD("get_normal"), &PhysicsShapeRestInfo2D::get_normal);
+	ClassDB::bind_method(D_METHOD("get_rid"), &PhysicsShapeRestInfo2D::get_rid);
+	ClassDB::bind_method(D_METHOD("get_collider_id"), &PhysicsShapeRestInfo2D::get_collider_id);
+	ClassDB::bind_method(D_METHOD("get_shape"), &PhysicsShapeRestInfo2D::get_shape);
+	ClassDB::bind_method(D_METHOD("get_linear_velocity"), &PhysicsShapeRestInfo2D::get_linear_velocity);
+}
+
 ///////////////////////////////////////////////////////
 
-Dictionary PhysicsDirectSpaceState2D::_intersect_ray(RequiredParam<PhysicsRayQueryParameters2D> rp_ray_query) {
-	EXTRACT_PARAM_OR_FAIL_V(p_ray_query, rp_ray_query, Dictionary());
+Ref<PhysicsRayQueryResult2D> PhysicsDirectSpaceState2D::_intersect_ray(RequiredParam<PhysicsRayQueryParameters2D> rp_ray_query) {
+	EXTRACT_PARAM_OR_FAIL_V(p_ray_query, rp_ray_query, Ref<PhysicsRayQueryResult2D>());
 
 	RayResult result;
 	bool res = intersect_ray(p_ray_query->get_parameters(), result);
 
 	if (!res) {
-		return Dictionary();
+		return Ref<PhysicsRayQueryResult2D>();
 	}
 
-	Dictionary d;
-	d["position"] = result.position;
-	d["normal"] = result.normal;
-	d["collider_id"] = result.collider_id;
-	d["collider"] = result.collider;
-	d["shape"] = result.shape;
-	d["rid"] = result.rid;
+	Ref<PhysicsRayQueryResult2D> ref_result;
+	ref_result.instantiate();
+	ref_result->result = result;
 
-	return d;
+	return ref_result;
 }
 
-TypedArray<Dictionary> PhysicsDirectSpaceState2D::_intersect_point(RequiredParam<PhysicsPointQueryParameters2D> rp_point_query, int p_max_results) {
-	EXTRACT_PARAM_OR_FAIL_V(p_point_query, rp_point_query, TypedArray<Dictionary>());
+Ref<PhysicsShapeQueryResults2D> PhysicsDirectSpaceState2D::_intersect_point(RequiredParam<PhysicsPointQueryParameters2D> rp_point_query, int p_max_results) {
+	EXTRACT_PARAM_OR_FAIL_V(p_point_query, rp_point_query, Ref<PhysicsShapeQueryResults2D>());
 
 	Vector<ShapeResult> ret;
 	ret.resize(p_max_results);
@@ -366,40 +388,32 @@ TypedArray<Dictionary> PhysicsDirectSpaceState2D::_intersect_point(RequiredParam
 	int rc = intersect_point(p_point_query->get_parameters(), ret.ptrw(), ret.size());
 
 	if (rc == 0) {
-		return TypedArray<Dictionary>();
+		return Ref<PhysicsShapeQueryResults2D>();
 	}
 
-	TypedArray<Dictionary> r;
-	r.resize(rc);
+	Ref<PhysicsShapeQueryResults2D> results;
+	results.instantiate();
+	results->results.resize(rc);
 	for (int i = 0; i < rc; i++) {
-		Dictionary d;
-		d["rid"] = ret[i].rid;
-		d["collider_id"] = ret[i].collider_id;
-		d["collider"] = ret[i].collider;
-		d["shape"] = ret[i].shape;
-		r[i] = d;
+		results->results.push_back(ret[i]);
 	}
-	return r;
+	return results;
 }
 
-TypedArray<Dictionary> PhysicsDirectSpaceState2D::_intersect_shape(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query, int p_max_results) {
-	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, TypedArray<Dictionary>());
+Ref<PhysicsShapeQueryResults2D> PhysicsDirectSpaceState2D::_intersect_shape(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query, int p_max_results) {
+	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Ref<PhysicsShapeQueryResults2D>());
 
 	Vector<ShapeResult> sr;
 	sr.resize(p_max_results);
 	int rc = intersect_shape(p_shape_query->get_parameters(), sr.ptrw(), sr.size());
-	TypedArray<Dictionary> ret;
-	ret.resize(rc);
+	Ref<PhysicsShapeQueryResults2D> results;
+	results.instantiate();
+	results->results.resize(rc);
 	for (int i = 0; i < rc; i++) {
-		Dictionary d;
-		d["rid"] = sr[i].rid;
-		d["collider_id"] = sr[i].collider_id;
-		d["collider"] = sr[i].collider;
-		d["shape"] = sr[i].shape;
-		ret[i] = d;
+		results->results.push_back(sr[i]);
 	}
 
-	return ret;
+	return results;
 }
 
 Vector<real_t> PhysicsDirectSpaceState2D::_cast_motion(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query) {
@@ -435,25 +449,21 @@ TypedArray<Vector2> PhysicsDirectSpaceState2D::_collide_shape(RequiredParam<Phys
 	return r;
 }
 
-Dictionary PhysicsDirectSpaceState2D::_get_rest_info(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query) {
-	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Dictionary());
+Ref<PhysicsShapeRestInfo2D> PhysicsDirectSpaceState2D::_get_rest_info(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query) {
+	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Ref<PhysicsShapeRestInfo2D>());
 
 	ShapeRestInfo sri;
 
 	bool res = rest_info(p_shape_query->get_parameters(), &sri);
-	Dictionary r;
 	if (!res) {
-		return r;
+		return Ref<PhysicsShapeRestInfo2D>();
 	}
 
-	r["point"] = sri.point;
-	r["normal"] = sri.normal;
-	r["rid"] = sri.rid;
-	r["collider_id"] = sri.collider_id;
-	r["shape"] = sri.shape;
-	r["linear_velocity"] = sri.linear_velocity;
+	Ref<PhysicsShapeRestInfo2D> rest;
+	rest.instantiate();
+	rest->rest = sri;
 
-	return r;
+	return rest;
 }
 
 PhysicsDirectSpaceState2D::PhysicsDirectSpaceState2D() {
