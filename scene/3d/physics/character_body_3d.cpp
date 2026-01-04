@@ -40,9 +40,10 @@
 //so, if you pass 45 as limit, avoid numerical precision errors when angle is 45.
 #define FLOOR_ANGLE_THRESHOLD 0.01
 
-bool CharacterBody3D::move_and_slide() {
+bool CharacterBody3D::move_and_slide(double p_delta) {
 	// Hack in order to work with calling from _process as well as from _physics_process; calling from thread is risky
-	double delta = Engine::get_singleton()->is_in_physics_frame() ? get_physics_process_delta_time() : get_process_delta_time();
+	//double delta = Engine::get_singleton()->is_in_physics_frame() ? get_physics_process_delta_time() : get_process_delta_time();
+	double delta = p_delta;
 
 	for (int i = 0; i < 3; i++) {
 		if (locked_axis & (1 << i)) {
@@ -953,9 +954,6 @@ void CharacterBody3D::_bind_methods() {
 }
 
 void CharacterBody3D::_validate_property(PropertyInfo &p_property) const {
-	if (!Engine::get_singleton()->is_editor_hint()) {
-		return;
-	}
 	if (motion_mode == MOTION_MODE_FLOATING) {
 		if (p_property.name.begins_with("floor_") || p_property.name == "up_direction" || p_property.name == "slide_on_ceiling") {
 			p_property.usage = PROPERTY_USAGE_NO_EDITOR;
