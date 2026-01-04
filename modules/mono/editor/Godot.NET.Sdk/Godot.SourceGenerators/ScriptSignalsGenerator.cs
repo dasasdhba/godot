@@ -273,51 +273,147 @@ namespace Godot.SourceGenerators
                     .Append(signalDelegate.DelegateSymbol.FullQualifiedNameIncludeGlobal())
                     .Append(" @")
                     .Append(signalName)
-                    .Append(" {\n")
+                    .Append("\n    {\n")
                     .Append("        add => backing_")
                     .Append(signalName)
                     .Append(" += value;\n")
                     .Append("        remove => backing_")
                     .Append(signalName)
                     .Append(" -= value;\n")
-                    .Append("}\n");
+                    .Append("    }\n");
 
                 // Generate EmitSignal{EventName} method to raise the event
 
                 var invokeMethodSymbol = signalDelegate.InvokeMethodData.Method;
                 int paramCount = invokeMethodSymbol.Parameters.Length;
 
-                string raiseMethodModifiers = signalDelegate.DelegateSymbol.ContainingType.IsSealed ?
-                    "private" :
-                    "protected";
-
-                source.Append($"    {raiseMethodModifiers} void EmitSignal{signalName}(");
+                var variantBuilder = new StringBuilder();
+                var paramBuilder = new StringBuilder();
+                var invokeBuilder = new StringBuilder();
                 for (int i = 0; i < paramCount; i++)
                 {
                     var paramSymbol = invokeMethodSymbol.Parameters[i];
-                    source.Append($"{paramSymbol.Type.FullQualifiedNameIncludeGlobal()} @{paramSymbol.Name}");
-                    if (i < paramCount - 1)
-                    {
-                        source.Append(", ");
-                    }
-                }
-                source.Append(")\n");
-                source.Append("    {\n");
-                source.Append($"        EmitSignal(SignalName.{signalName}");
-                foreach (var paramSymbol in invokeMethodSymbol.Parameters)
-                {
+                    variantBuilder.Append(paramSymbol.Type.FullQualifiedNameIncludeGlobal());
+                    paramBuilder.Append($"{paramSymbol.Type.FullQualifiedNameIncludeGlobal()} @{paramSymbol.Name}");
                     // Enums must be converted to the underlying type before they can be implicitly converted to Variant
                     if (paramSymbol.Type.TypeKind == TypeKind.Enum)
                     {
                         var underlyingType = ((INamedTypeSymbol)paramSymbol.Type).EnumUnderlyingType!;
-                        source.Append($", ({underlyingType.FullQualifiedNameIncludeGlobal()})@{paramSymbol.Name}");
-                        continue;
+                        invokeBuilder.Append($"({underlyingType.FullQualifiedNameIncludeGlobal()})@{paramSymbol.Name}");
+                    }
+                    else
+                    {
+                        invokeBuilder.Append($"@{paramSymbol.Name}");
+                    }
+                    
+                    if (i < paramCount - 1)
+                    {
+                        variantBuilder.Append(", ");
+                        paramBuilder.Append(", ");
+                        invokeBuilder.Append(", ");
+                    }
+                }
+                var signalParam = paramBuilder.ToString();
+                var signalInvoke = invokeBuilder.ToString();
+                var signalInvokeJoined = paramCount == 0 ? "" : $", {signalInvoke}";
+                var signalVariant = variantBuilder.ToString();
+                var signalVariantTask = paramCount > 1 ? $"({signalVariant})" : signalVariant;
+                if (paramCount > 0)
+                {
+                    signalVariant = $"<{signalVariant}>";
+                    signalVariantTask = $"<{signalVariantTask}>";
+                }
+
+                source.Append($"    {signalDelegate.DelegateSymbol.GetAccessibilityKeyword()} void EmitSignal{signalName}({signalParam})\n");
+                source.Append("    {\n");
+                source.Append($"        EmitSignal(SignalName.{signalName}{signalInvokeJoined});\n");
+                source.Append("    }\n");
+
+				// Signal + SignalName: Use godot Connect API
+				source.Append($"    {signalDelegate.DelegateSymbol.GetAccessibilityKeyword()} event System.Action")
+                    .Append(signalVariant)
+                    .Append(" Signal")
+                    .Append(signalName)
+                    .Append("\n    {\n")
+                    .Append("        add => Connect(SignalName.")
+                    .Append(signalName)
+					.Append(", Callable.From(value));\n")
+                    .Append("        remove => Disconnect(SignalName.")
+                    .Append(signalName)
+					.Append(", Callable.From(value));\n")
+                    .Append("    }\n");
+
+				// SignalOneshot + SignalName: Use godot Connect API with oneshot flag
+				source.Append($"    {signalDelegate.DelegateSymbol.GetAccessibilityKeyword()} event System.Action")
+                    .Append(signalVariant)
+                    .Append(" SignalOneshot")
+                    .Append(signalName)
+                    .Append("\n    {\n")
+                    .Append("        add => Connect(SignalName.")
+                    .Append(signalName)
+					.Append(", Callable.From(value), (uint)ConnectFlags.OneShot);\n")
+                    .Append("        remove => Disconnect(SignalName.")
+                    .Append(signalName)
+					.Append(", Callable.From(value));\n")
+                    .Append("    }\n");
+
+                var oneshotFunction = $"void oneshotAction({signalParam})\n" + "            {\n                "
+                    + $"value?.Invoke({signalInvoke});" + "\n                "
+                    + signalName + " -= oneshotAction;\n            }\n            ";
+
+				// Oneshot + SignalName: C# event with oneshot
+				source.Append($"    {signalDelegate.DelegateSymbol.GetAccessibilityKeyword()} event System.Action")
+                    .Append(signalVariant)
+                    .Append(" Oneshot")
+                    .Append(signalName)
+                    .Append("\n    {\n")
+                    .Append("        add\n        {\n            ")
+					.Append(oneshotFunction)
+					.Append(signalName)
+					.Append(" += oneshotAction;\n        }\n")
+					.Append("        remove \n        {\n            ")
+					.Append(oneshotFunction)
+					.Append(signalName)
+					.Append(" -= oneshotAction;\n        }\n    }\n");
+
+                // Generate Task
+                source.Append($"    {signalDelegate.DelegateSymbol.GetAccessibilityKeyword()} async System.Threading.Tasks.Task")
+                    .Append(signalVariantTask)
+                    .Append(" ")
+                    .Append(signalName)
+                    .Append("Async()\n    {\n")
+                    .Append(get_task_function_body())
+                    .Append("    }\n");
+                
+                string get_task_function_body()
+                {
+                    var waitBody = $"await ToSignal(this, SignalName.{signalName});\n";
+                    if (signalDelegate.InvokeMethodData.ParamTypes.Length == 0)
+                        return $"        {waitBody}";
+
+                    var result = new StringBuilder();
+                    result.Append($"        var results = {waitBody}");
+
+                    if (signalDelegate.InvokeMethodData.ParamTypes.Length == 1)
+                        result.Append($"        return ({signalDelegate.InvokeMethodData.ParamTypeSymbols[0].FullQualifiedNameIncludeGlobal()})results[0];\n");
+                    else
+                    {
+                        result.Append("        return (");
+                        for (int i = 0; i < signalDelegate.InvokeMethodData.ParamTypes.Length; i++)
+                        {
+                            if (i != 0)
+                                result.Append(", ");
+
+                            result.Append("(");
+                            result.Append(signalDelegate.InvokeMethodData.ParamTypeSymbols[i].FullQualifiedNameIncludeGlobal());
+                            result.Append($")results[{i}]");
+                        }
+
+                        result.Append(");\n");
                     }
 
-                    source.Append($", @{paramSymbol.Name}");
+                    return result.ToString();
                 }
-                source.Append(");\n");
-                source.Append("    }\n");
             }
 
             // Generate RaiseGodotClassSignalCallbacks
