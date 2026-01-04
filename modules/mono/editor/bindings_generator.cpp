@@ -3183,9 +3183,23 @@ Error BindingsGenerator::_generate_cs_method(const BindingsGenerator::TypeInterf
 
 Error BindingsGenerator::_generate_cs_signal(const BindingsGenerator::TypeInterface &p_itype, const BindingsGenerator::SignalInterface &p_isignal, StringBuilder &p_output) {
 	String arguments_sig;
+	String task_type_params;
+	String task_returns;
+
+	int arguments_size = p_isignal.arguments.size();
+	bool is_parameterless = arguments_size == 0;
+
+	if (!is_parameterless) {
+		task_type_params += "<";
+		if (arguments_size > 1) {
+			task_type_params += "(";
+			task_returns += "(";
+		}
+	}
 
 	// Retrieve information from the arguments
 	const ArgumentInterface &first = p_isignal.arguments.front()->get();
+	int index = 0;
 	for (const ArgumentInterface &iarg : p_isignal.arguments) {
 		const TypeInterface *arg_type = _get_type_or_singleton_or_null(iarg.type);
 		ERR_FAIL_NULL_V_MSG(arg_type, ERR_BUG, "Argument type '" + iarg.type.cname + "' was not found.");
@@ -3203,6 +3217,8 @@ Error BindingsGenerator::_generate_cs_signal(const BindingsGenerator::TypeInterf
 
 		if (&iarg != &first) {
 			arguments_sig += ", ";
+			task_type_params += ", ";
+			task_returns += ", ";
 		}
 
 		String arg_cs_type = arg_type->cs_type + _get_generic_type_parameters(*arg_type, iarg.type.generic_type_parameters);
@@ -3210,12 +3226,24 @@ Error BindingsGenerator::_generate_cs_signal(const BindingsGenerator::TypeInterf
 		arguments_sig += arg_cs_type;
 		arguments_sig += " ";
 		arguments_sig += iarg.name;
+
+		task_type_params += arg_cs_type;
+		task_returns += "(" + arg_cs_type + ")results[" + itos(index) + "]";
+
+		index++;
+	}
+
+	if (!is_parameterless) {
+		if (arguments_size > 1) {
+			task_type_params += ")";
+			task_returns += ")";
+		}
+
+		task_type_params += ">";
 	}
 
 	// Generate signal
 	{
-		bool is_parameterless = p_isignal.arguments.is_empty();
-
 		// Delegate name is [SignalName]EventHandler
 		String delegate_name = is_parameterless ? "Action" : p_isignal.proxy_name + "EventHandler";
 
@@ -3399,6 +3427,42 @@ Error BindingsGenerator::_generate_cs_signal(const BindingsGenerator::TypeInterf
 				p_output.append(CLOSE_BLOCK_L1);
 			}
 		}
+
+		// Generate async task
+		p_output.append(MEMBER_BEGIN "public ");
+
+		if (p_itype.is_singleton) {
+			p_output.append("static ");
+		}
+
+		p_output.append("async System.Threading.Tasks.Task");
+		p_output.append(task_type_params);
+		p_output.append(" " + p_isignal.proxy_name);
+		p_output.append("Async()");
+		p_output.append("\n" OPEN_BLOCK_L1 INDENT2);
+
+		StringBuilder waiting;
+
+		if (p_itype.is_singleton) {
+			waiting.append("await " CS_PROPERTY_SINGLETON ".ToSignal(");
+			waiting.append(CS_PROPERTY_SINGLETON ", SignalName.");
+			waiting.append(p_isignal.proxy_name);
+			waiting.append(");");
+		} else {
+			waiting.append("await ToSignal(this, ");
+			waiting.append("SignalName.");
+			waiting.append(p_isignal.proxy_name);
+			waiting.append(");");
+		}
+
+		if (is_parameterless) {
+			p_output.append(waiting.as_string());
+		} else {
+			p_output.append("var results = " + waiting.as_string());
+			p_output.append(INDENT2 "\nreturn " + task_returns + ";");
+		}
+
+		p_output.append("\n" CLOSE_BLOCK_L1);
 	}
 
 	return OK;
