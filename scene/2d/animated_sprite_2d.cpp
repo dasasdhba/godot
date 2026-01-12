@@ -190,7 +190,7 @@ void AnimatedSprite2D::_animate(double p_delta) {
 		int fc = frames->get_frame_count(animation);
 
 		int last_frame = fc - 1;
-		if (!signbit(speed)) {
+		if (!std::signbit(speed)) {
 			// Forwards.
 			if (frame_progress >= 1.0) {
 				if (frame >= last_frame) {
@@ -249,6 +249,16 @@ void AnimatedSprite2D::_animate(double p_delta) {
 
 void AnimatedSprite2D::_notification(int p_what) {
 	switch (p_what) {
+		case NOTIFICATION_ACCESSIBILITY_UPDATE: {
+			RID ae = get_accessibility_element();
+			ERR_FAIL_COND(ae.is_null());
+
+			Rect2 dst_rect = _get_rect();
+
+			DisplayServer::get_singleton()->accessibility_update_set_role(ae, DisplayServer::AccessibilityRole::ROLE_IMAGE);
+			DisplayServer::get_singleton()->accessibility_update_set_transform(ae, get_transform());
+			DisplayServer::get_singleton()->accessibility_update_set_bounds(ae, dst_rect);
+		} break;
 		case NOTIFICATION_READY: {
 			if (!Engine::get_singleton()->is_editor_hint() && !frames.is_null() && frames->has_animation(autoplay)) {
 				play(autoplay);
