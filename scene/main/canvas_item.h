@@ -218,9 +218,13 @@ public:
 
 	/* EDITOR AND DEBUGGING */
 
-#ifdef TOOLS_ENABLED
+#ifdef DEBUG_ENABLED
 	virtual bool _edit_is_selected_on_click(const Point2 &p_point, double p_tolerance) const;
+	virtual Rect2 _edit_get_rect() const { return Rect2(0, 0, 0, 0); };
+	virtual bool _edit_use_rect() const { return false; };// MAYBE REPLACE BY A _edit_get_editmode()
+#endif // DEBUG_ENABLED
 
+#ifdef TOOLS_ENABLED
 	virtual void _edit_set_state(const Dictionary &p_state) {};
 	virtual Dictionary _edit_get_state() const { return Dictionary(); };
 
@@ -234,9 +238,7 @@ public:
 	virtual void _edit_set_rotation(real_t p_rotation) {};
 	virtual real_t _edit_get_rotation() const { return 0.0; };
 
-	virtual bool _edit_use_rect() const { return false; };// MAYBE REPLACE BY A _edit_get_editmode()
 	virtual void _edit_set_rect(const Rect2 &p_rect) {};
-	virtual Rect2 _edit_get_rect() const { return Rect2(0, 0, 0, 0); };
 	virtual Size2 _edit_get_minimum_size() const { return Size2(-1, -1); };
 
 	virtual bool _edit_use_pivot() const { return false; };
@@ -244,7 +246,8 @@ public:
 	virtual Point2 _edit_get_pivot() const { return Point2(); };
 
 	virtual Transform2D _edit_get_transform() const;
-#endif
+#endif // TOOLS_ENABLED
+
 	// Select the node
 	bool edit_is_selected_on_click(const Point2 &p_point, double p_tolerance) const;
 
