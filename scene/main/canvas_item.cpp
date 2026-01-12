@@ -58,7 +58,7 @@ Transform2D CanvasItem::_edit_get_transform() const {
 	return Transform2D(edit_get_rotation(), edit_get_position() + edit_get_pivot());
 }
 
-#endif
+#endif // TOOLS_ENABLED
 
 ///////////////////////////////////////////////////////////////////
 
@@ -177,7 +177,7 @@ bool CanvasItem::edit_use_rect() const {
 		GDVIRTUAL_CALL(_editor_use_rect, ret);
 		return ret;
 	}
-#ifdef TOOLS_ENABLED
+#ifdef DEBUG_ENABLED
 	return _edit_use_rect();
 #else
 	return false;
@@ -199,7 +199,7 @@ Rect2 CanvasItem::edit_get_rect() const {
 		GDVIRTUAL_CALL(_editor_get_rect, ret);
 		return ret;
 	}
-#ifdef TOOLS_ENABLED
+#ifdef DEBUG_ENABLED
 	return _edit_get_rect();
 #else
 	return Rect2();
