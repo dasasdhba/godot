@@ -137,7 +137,7 @@ public:
 
 #ifdef TOOLS_ENABLED
 	virtual void get_argument_options(const StringName &p_function, int p_idx, List<String> *r_options) const override;
-#endif
+#endif // TOOLS_ENABLED
 
 	void set_animated_sprite_2d_process_callback(AnimatedSprite2DProcessCallback p_callback);
 	AnimatedSprite2DProcessCallback get_animated_sprite_2d_process_callback() const;
