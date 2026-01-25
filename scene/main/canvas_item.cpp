@@ -1666,6 +1666,23 @@ void CanvasItem::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("_edit_get_transform"), &CanvasItem::_edit_get_transform);
 #endif //TOOLS_ENABLED
 
+	ClassDB::bind_method(D_METHOD("edit_set_state", "state"), &CanvasItem::edit_set_state);
+	ClassDB::bind_method(D_METHOD("edit_get_state"), &CanvasItem::edit_get_state);
+	ClassDB::bind_method(D_METHOD("edit_set_position", "position"), &CanvasItem::edit_set_position);
+	ClassDB::bind_method(D_METHOD("edit_get_position"), &CanvasItem::edit_get_position);
+	ClassDB::bind_method(D_METHOD("edit_set_scale", "scale"), &CanvasItem::edit_set_scale);
+	ClassDB::bind_method(D_METHOD("edit_get_scale"), &CanvasItem::edit_get_scale);
+	ClassDB::bind_method(D_METHOD("edit_set_rect", "rect"), &CanvasItem::edit_set_rect);
+	ClassDB::bind_method(D_METHOD("edit_get_rect"), &CanvasItem::edit_get_rect);
+	ClassDB::bind_method(D_METHOD("edit_use_rect"), &CanvasItem::edit_use_rect);
+	ClassDB::bind_method(D_METHOD("edit_set_rotation", "degrees"), &CanvasItem::edit_set_rotation);
+	ClassDB::bind_method(D_METHOD("edit_get_rotation"), &CanvasItem::edit_get_rotation);
+	ClassDB::bind_method(D_METHOD("edit_use_rotation"), &CanvasItem::edit_use_rotation);
+	ClassDB::bind_method(D_METHOD("edit_set_pivot", "pivot"), &CanvasItem::edit_set_pivot);
+	ClassDB::bind_method(D_METHOD("edit_get_pivot"), &CanvasItem::edit_get_pivot);
+	ClassDB::bind_method(D_METHOD("edit_use_pivot"), &CanvasItem::edit_use_pivot);
+	ClassDB::bind_method(D_METHOD("edit_get_transform"), &CanvasItem::edit_get_transform);
+
 	ClassDB::bind_method(D_METHOD("get_canvas_item"), &CanvasItem::get_canvas_item);
 
 	ClassDB::bind_method(D_METHOD("set_visible", "visible"), &CanvasItem::set_visible);
