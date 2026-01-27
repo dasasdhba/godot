@@ -3436,8 +3436,7 @@ Error BindingsGenerator::_generate_cs_signal(const BindingsGenerator::TypeInterf
 
 		p_output.append("async System.Threading.Tasks.Task");
 		p_output.append(task_type_params);
-		p_output.append(" " + p_isignal.proxy_name);
-		p_output.append("Async()");
+		p_output.append(" ToSignal" + p_isignal.proxy_name + "()");
 		p_output.append("\n" OPEN_BLOCK_L1 INDENT2);
 
 		StringBuilder waiting;
