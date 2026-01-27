@@ -1122,6 +1122,95 @@ void AnimatedSprite3D::_validate_property(PropertyInfo &p_property) const {
 	}
 }
 
+void AnimatedSprite3D::_animate(double p_delta) {
+	if (frames.is_null() || !frames->has_animation(animation)) {
+		return;
+	}
+
+	double remaining = p_delta;
+	int i = 0;
+	while (remaining) {
+		// Animation speed may be changed by animation_finished or frame_changed signals.
+		double speed = frames->get_animation_speed(animation) * speed_scale * custom_speed_scale * frame_speed_scale;
+		double abs_speed = Math::abs(speed);
+
+		if (speed == 0) {
+			return; // Do nothing.
+		}
+
+		// Frame count may be changed by animation_finished or frame_changed signals.
+		int fc = frames->get_frame_count(animation);
+
+		int last_frame = fc - 1;
+		if (!std::signbit(speed)) {
+			// Forwards.
+			if (frame_progress >= 1.0) {
+				if (frame >= last_frame) {
+					SpriteFrames::LoopMode loop = frames->get_animation_loop_mode(animation);
+					if (loop == SpriteFrames::LOOP_NONE) {
+						frame = last_frame;
+						pause();
+						emit_signal(SceneStringName(animation_finished));
+						return;
+					}
+
+					if (loop == SpriteFrames::LOOP_PINGPONG) {
+						frame = last_frame;
+						custom_speed_scale *= -1;
+					} else {
+						frame = 0;
+					}
+					emit_signal("animation_looped");
+				} else {
+					frame++;
+				}
+				_calc_frame_speed_scale();
+				frame_progress = 0.0;
+				_queue_redraw();
+				emit_signal(SceneStringName(frame_changed));
+			}
+			double to_process = MIN((1.0 - frame_progress) / abs_speed, remaining);
+			frame_progress += to_process * abs_speed;
+			remaining -= to_process;
+		} else {
+			// Backwards.
+			if (frame_progress <= 0) {
+				if (frame <= 0) {
+					SpriteFrames::LoopMode loop = frames->get_animation_loop_mode(animation);
+					if (loop == SpriteFrames::LOOP_NONE) {
+						frame = 0;
+						pause();
+						emit_signal(SceneStringName(animation_finished));
+						return;
+					}
+
+					if (loop == SpriteFrames::LOOP_PINGPONG) {
+						frame = 0;
+						custom_speed_scale *= -1;
+					} else {
+						frame = last_frame;
+					}
+					emit_signal("animation_looped");
+				} else {
+					frame--;
+				}
+				_calc_frame_speed_scale();
+				frame_progress = 1.0;
+				_queue_redraw();
+				emit_signal(SceneStringName(frame_changed));
+			}
+			double to_process = MIN(frame_progress / abs_speed, remaining);
+			frame_progress -= to_process * abs_speed;
+			remaining -= to_process;
+		}
+
+		i++;
+		if (i > fc) {
+			return; // Prevents freezing if to_process is each time much less than remaining.
+		}
+	}
+}
+
 void AnimatedSprite3D::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_READY: {
@@ -1131,92 +1220,11 @@ void AnimatedSprite3D::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_INTERNAL_PROCESS: {
-			if (frames.is_null() || !frames->has_animation(animation)) {
-				return;
-			}
+			_animate(get_process_delta_time());
+		} break;
 
-			double remaining = get_process_delta_time();
-			int i = 0;
-			while (remaining) {
-				// Animation speed may be changed by animation_finished or frame_changed signals.
-				double speed = frames->get_animation_speed(animation) * speed_scale * custom_speed_scale * frame_speed_scale;
-				double abs_speed = Math::abs(speed);
-
-				if (speed == 0) {
-					return; // Do nothing.
-				}
-
-				// Frame count may be changed by animation_finished or frame_changed signals.
-				int fc = frames->get_frame_count(animation);
-
-				int last_frame = fc - 1;
-				if (!std::signbit(speed)) {
-					// Forwards.
-					if (frame_progress >= 1.0) {
-						if (frame >= last_frame) {
-							SpriteFrames::LoopMode loop = frames->get_animation_loop_mode(animation);
-							if (loop == SpriteFrames::LOOP_NONE) {
-								frame = last_frame;
-								pause();
-								emit_signal(SceneStringName(animation_finished));
-								return;
-							}
-
-							if (loop == SpriteFrames::LOOP_PINGPONG) {
-								frame = last_frame;
-								custom_speed_scale *= -1;
-							} else {
-								frame = 0;
-							}
-							emit_signal("animation_looped");
-						} else {
-							frame++;
-						}
-						_calc_frame_speed_scale();
-						frame_progress = 0.0;
-						_queue_redraw();
-						emit_signal(SceneStringName(frame_changed));
-					}
-					double to_process = MIN((1.0 - frame_progress) / abs_speed, remaining);
-					frame_progress += to_process * abs_speed;
-					remaining -= to_process;
-				} else {
-					// Backwards.
-					if (frame_progress <= 0) {
-						if (frame <= 0) {
-							SpriteFrames::LoopMode loop = frames->get_animation_loop_mode(animation);
-							if (loop == SpriteFrames::LOOP_NONE) {
-								frame = 0;
-								pause();
-								emit_signal(SceneStringName(animation_finished));
-								return;
-							}
-
-							if (loop == SpriteFrames::LOOP_PINGPONG) {
-								frame = 0;
-								custom_speed_scale *= -1;
-							} else {
-								frame = last_frame;
-							}
-							emit_signal("animation_looped");
-						} else {
-							frame--;
-						}
-						_calc_frame_speed_scale();
-						frame_progress = 1.0;
-						_queue_redraw();
-						emit_signal(SceneStringName(frame_changed));
-					}
-					double to_process = MIN(frame_progress / abs_speed, remaining);
-					frame_progress -= to_process * abs_speed;
-					remaining -= to_process;
-				}
-
-				i++;
-				if (i > fc) {
-					return; // Prevents freezing if to_process is each time much less than remaining.
-				}
-			}
+		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
+			_animate(get_physics_process_delta_time());
 		} break;
 	}
 }
@@ -1406,7 +1414,7 @@ void AnimatedSprite3D::play(const StringName &p_name, float p_custom_scale, bool
 		}
 	}
 
-	set_process_internal(true);
+	_set_process(true);
 	notify_property_list_changed();
 	_queue_redraw();
 }
@@ -1422,7 +1430,7 @@ void AnimatedSprite3D::_stop_internal(bool p_reset) {
 		set_frame_and_progress(0, 0.0);
 	}
 	notify_property_list_changed();
-	set_process_internal(false);
+	_set_process(false);
 }
 
 void AnimatedSprite3D::pause() {
@@ -1515,7 +1523,47 @@ bool AnimatedSprite3D::_set(const StringName &p_name, const Variant &p_value) {
 	return false;
 }
 #endif
+void AnimatedSprite3D::set_animated_sprite_3d_process_callback(AnimatedSprite3DProcessCallback p_callback) {
+	if (animated_sprite_3d_process_callback == p_callback) {
+		return;
+	}
+
+	switch (animated_sprite_3d_process_callback) {
+		case ANIMATED_SPRITE_3D_PROCESS_PHYSICS:
+			if (is_physics_processing_internal()) {
+				set_physics_process_internal(false);
+				set_process_internal(true);
+			}
+			break;
+		case ANIMATED_SPRITE_3D_PROCESS_IDLE:
+			if (is_processing_internal()) {
+				set_process_internal(false);
+				set_physics_process_internal(true);
+			}
+			break;
+	}
+	animated_sprite_3d_process_callback = p_callback;
+}
+
+AnimatedSprite3D::AnimatedSprite3DProcessCallback AnimatedSprite3D::get_animated_sprite_3d_process_callback() const {
+	return animated_sprite_3d_process_callback;
+}
+
+void AnimatedSprite3D::_set_process(bool p_process) {
+	switch (animated_sprite_3d_process_callback) {
+		case ANIMATED_SPRITE_3D_PROCESS_PHYSICS:
+			set_physics_process_internal(p_process);
+			break;
+		case ANIMATED_SPRITE_3D_PROCESS_IDLE:
+			set_process_internal(p_process);
+			break;
+	}
+}
+
 void AnimatedSprite3D::_bind_methods() {
+	// Process-callback setter/getter and process toggling
+	ClassDB::bind_method(D_METHOD("set_animated_sprite_3d_process_callback", "callback"), &AnimatedSprite3D::set_animated_sprite_3d_process_callback);
+	ClassDB::bind_method(D_METHOD("get_animated_sprite_3d_process_callback"), &AnimatedSprite3D::get_animated_sprite_3d_process_callback);
 	ClassDB::bind_method(D_METHOD("set_sprite_frames", "sprite_frames"), &AnimatedSprite3D::set_sprite_frames);
 	ClassDB::bind_method(D_METHOD("get_sprite_frames"), &AnimatedSprite3D::get_sprite_frames);
 
@@ -1558,6 +1606,10 @@ void AnimatedSprite3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "frame"), "set_frame", "get_frame");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "frame_progress", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR), "set_frame_progress", "get_frame_progress");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "speed_scale"), "set_speed_scale", "get_speed_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "process_callback", PROPERTY_HINT_ENUM, "Physics,Idle"), "set_animated_sprite_3d_process_callback", "get_animated_sprite_3d_process_callback");
+
+	BIND_ENUM_CONSTANT(ANIMATED_SPRITE_3D_PROCESS_PHYSICS);
+	BIND_ENUM_CONSTANT(ANIMATED_SPRITE_3D_PROCESS_IDLE);
 }
 
 AnimatedSprite3D::AnimatedSprite3D() {

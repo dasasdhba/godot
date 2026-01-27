@@ -245,6 +245,7 @@ class AnimatedSprite3D : public SpriteBase3D {
 	double _get_frame_duration();
 	void _calc_frame_speed_scale();
 	void _stop_internal(bool p_reset);
+	void _animate(double p_delta);
 
 protected:
 #ifndef DISABLE_DEPRECATED
@@ -256,6 +257,14 @@ protected:
 	void _validate_property(PropertyInfo &p_property) const;
 
 public:
+	enum AnimatedSprite3DProcessCallback {
+		ANIMATED_SPRITE_3D_PROCESS_PHYSICS,
+		ANIMATED_SPRITE_3D_PROCESS_IDLE,
+	};
+
+	void set_animated_sprite_3d_process_callback(AnimatedSprite3DProcessCallback p_callback);
+	AnimatedSprite3DProcessCallback get_animated_sprite_3d_process_callback() const;
+
 	void set_sprite_frames(const Ref<SpriteFrames> &p_frames);
 	Ref<SpriteFrames> get_sprite_frames() const;
 
@@ -293,7 +302,12 @@ public:
 #endif
 
 	AnimatedSprite3D();
+
+private:
+	AnimatedSprite3DProcessCallback animated_sprite_3d_process_callback = ANIMATED_SPRITE_3D_PROCESS_IDLE;
+	void _set_process(bool p_process);
 };
 
 VARIANT_ENUM_CAST(SpriteBase3D::DrawFlags);
 VARIANT_ENUM_CAST(SpriteBase3D::AlphaCutMode);
+VARIANT_ENUM_CAST(AnimatedSprite3D::AnimatedSprite3DProcessCallback);
