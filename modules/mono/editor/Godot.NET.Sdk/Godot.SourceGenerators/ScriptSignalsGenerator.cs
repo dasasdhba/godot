@@ -376,44 +376,40 @@ namespace Godot.SourceGenerators
 					.Append(signalName)
 					.Append(" -= oneshotAction;\n        }\n    }\n");
 
-                // Generate Task
+                // Generate async task
                 source.Append($"    {signalDelegate.DelegateSymbol.GetAccessibilityKeyword()} async System.Threading.Tasks.Task")
                     .Append(signalVariantTask)
-                    .Append(" ")
+                    .Append(" ToSignal")
                     .Append(signalName)
-                    .Append("Async()\n    {\n")
-                    .Append(get_task_function_body())
-                    .Append("    }\n");
+                    .Append("()\n    {\n");
                 
-                string get_task_function_body()
+                var waiting = $"await ToSignal(this, SignalName.{signalName});\n";
+                if (signalDelegate.InvokeMethodData.ParamTypes.Length == 0)
                 {
-                    var waitBody = $"await ToSignal(this, SignalName.{signalName});\n";
-                    if (signalDelegate.InvokeMethodData.ParamTypes.Length == 0)
-                        return $"        {waitBody}";
-
-                    var result = new StringBuilder();
-                    result.Append($"        var results = {waitBody}");
-
+                    source.Append($"        {waiting}");
+                }
+                else
+                {
+                    source.Append($"        var results = {waiting}");
                     if (signalDelegate.InvokeMethodData.ParamTypes.Length == 1)
-                        result.Append($"        return ({signalDelegate.InvokeMethodData.ParamTypeSymbols[0].FullQualifiedNameIncludeGlobal()})results[0];\n");
+                    {
+                        source.Append($"        return ({signalDelegate.InvokeMethodData.ParamTypeSymbols[0].FullQualifiedNameIncludeGlobal()})results[0];\n");
+                    }
                     else
                     {
-                        result.Append("        return (");
+                        source.Append("        return (");
                         for (int i = 0; i < signalDelegate.InvokeMethodData.ParamTypes.Length; i++)
                         {
                             if (i != 0)
-                                result.Append(", ");
-
-                            result.Append("(");
-                            result.Append(signalDelegate.InvokeMethodData.ParamTypeSymbols[i].FullQualifiedNameIncludeGlobal());
-                            result.Append($")results[{i}]");
+                                source.Append(", ");
+                            source.Append('(');
+                            source.Append(signalDelegate.InvokeMethodData.ParamTypeSymbols[i].FullQualifiedNameIncludeGlobal());
+                            source.Append($")results[{i}]");
                         }
-
-                        result.Append(");\n");
+                        source.Append(");\n");
                     }
-
-                    return result.ToString();
                 }
+                source.Append("    }\n");
             }
 
             // Generate RaiseGodotClassSignalCallbacks
