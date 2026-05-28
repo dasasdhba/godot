@@ -364,8 +364,8 @@ namespace Godot.Bridge
                 }
                 catch (Exception e)
                 {
-                    if (OS.IsStdOutVerbose())
-                        Console.Error.WriteLine($"[.NET] Failed to load '{dllName}': {e.Message}");
+                    //if (OS.IsStdOutVerbose())
+                    //Console.Error.WriteLine($"[.NET] Failed to load '{dllName}': {e.Message}");
                     continue;
                 }
 
@@ -378,6 +378,8 @@ namespace Godot.Bridge
 
                 LookupScriptsInAssembly(depAssembly, externalScriptTypes);
             }
+
+            if (!NativeFuncs.godotsharp_dotnet_module_is_initialized().ToBool() || !Engine.IsEditorHint()) return;
 
             foreach (var scriptType in externalScriptTypes)
             {
@@ -392,8 +394,8 @@ namespace Godot.Bridge
                 }
                 catch (Exception e)
                 {
-                    if (OS.IsStdOutVerbose())
-                        Console.Error.WriteLine($"[.NET] Failed to load script '{scriptPath}': {e.Message}");
+                    //if (OS.IsStdOutVerbose())
+                    //Console.Error.WriteLine($"[.NET] Failed to load script '{scriptPath}': {e.Message}");
                 }
                 finally
                 {
@@ -481,8 +483,8 @@ namespace Godot.Bridge
                 }
                 catch (TypeLoadException e)
                 {
-                    if (OS.IsStdOutVerbose())
-                        Console.Error.WriteLine($"[.NET] Failed to process type '{type}': {e.Message}");
+                    //if (OS.IsStdOutVerbose())
+                    //onsole.Error.WriteLine($"[.NET] Failed to process type '{type}': {e.Message}");
                 }
             }
 
