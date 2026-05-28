@@ -434,6 +434,7 @@ class CSharpLanguage : public ScriptLanguage {
 	EditorPlugin *godotsharp_editor = nullptr;
 
 	static void _editor_init_callback();
+	static void _flush_deferred_editor_data_entries();
 #endif
 
 	static void *_instance_binding_create_callback(void *p_token, void *p_instance);
@@ -468,6 +469,7 @@ public:
 	_FORCE_INLINE_ EditorPlugin *get_godotsharp_editor() const {
 		return godotsharp_editor;
 	}
+	static void register_global_class(const String &p_script_path, const CSharpScript::TypeInfo &p_type_info);
 #endif
 
 	static void release_script_gchandle(MonoGCHandleData &p_gchandle);
