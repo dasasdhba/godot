@@ -62,10 +62,10 @@ namespace GodotTools.ProjectEditor
             // NOTE: The order in which changes are made to the project is important.
 
             // Migrate to MSBuild project Sdks style if using the old style.
-            MigrateToProjectSdksStyle(project, projectName);
+            //MigrateToProjectSdksStyle(project, projectName);
 
-            EnsureGodotSdkIsUpToDate(project);
-            EnsureTargetFrameworkMatchesMinimumRequirement(project);
+            //EnsureGodotSdkIsUpToDate(project);
+            //EnsureTargetFrameworkMatchesMinimumRequirement(project);
         }
 
         private static void MigrateToProjectSdksStyle(MSBuildProject project, string projectName)
