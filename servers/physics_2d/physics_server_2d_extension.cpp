@@ -152,6 +152,7 @@ void PhysicsServer2DExtension::_bind_methods() {
 	GDVIRTUAL_BIND(_shape_get_type, "shape");
 	GDVIRTUAL_BIND(_shape_get_data, "shape");
 	GDVIRTUAL_BIND(_shape_get_custom_solver_bias, "shape");
+	GDVIRTUAL_BIND(_shape_is_one_way_collision_allowed, "shape");
 	GDVIRTUAL_BIND(_shape_collide, "shape_A", "xform_A", "motion_A", "shape_B", "xform_B", "motion_B", "r_results", "result_max", "r_result_count");
 
 	/* SPACE API */
@@ -235,6 +236,8 @@ void PhysicsServer2DExtension::_bind_methods() {
 
 	GDVIRTUAL_BIND(_body_set_shape_disabled, "body", "shape_idx", "disabled");
 	GDVIRTUAL_BIND(_body_set_shape_as_one_way_collision, "body", "shape_idx", "enable", "margin", "direction");
+	GDVIRTUAL_BIND(_body_is_shape_set_as_one_way_collision, "body", "shape_idx");
+	GDVIRTUAL_BIND(_body_get_shape_one_way_collision_margin, "body", "shape_idx");
 
 	GDVIRTUAL_BIND(_body_remove_shape, "body", "shape_idx");
 	GDVIRTUAL_BIND(_body_clear_shapes, "body");

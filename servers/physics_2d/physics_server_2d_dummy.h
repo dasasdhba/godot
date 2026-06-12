@@ -146,6 +146,7 @@ public:
 	virtual ShapeType shape_get_type(RID p_shape) const override { return ShapeType::SHAPE_CIRCLE; }
 	virtual Variant shape_get_data(RID p_shape) const override { return Variant(); }
 	virtual real_t shape_get_custom_solver_bias(RID p_shape) const override { return 0; }
+	virtual bool shape_is_one_way_collision_allowed(RID p_shape) const override { return false; }
 
 	virtual bool shape_collide(RID p_shape_A, const Transform2D &p_xform_A, const Vector2 &p_motion_A, RID p_shape_B, const Transform2D &p_xform_B, const Vector2 &p_motion_B, Vector2 *r_results, int p_result_max, int &r_result_count) override { return false; }
 
@@ -228,6 +229,8 @@ public:
 
 	virtual void body_set_shape_disabled(RID p_body, int p_shape, bool p_disabled) override {}
 	virtual void body_set_shape_as_one_way_collision(RID p_body, int p_shape, bool p_enabled, real_t p_margin = 0, const Vector2 &p_direction = Vector2(0, 1)) override {}
+	virtual bool body_is_shape_set_as_one_way_collision(RID p_body, int p_shape_idx) const override { return false; }
+	virtual real_t body_get_shape_one_way_collision_margin(RID p_body, int p_shape_idx) const override { return 0; }
 
 	virtual void body_remove_shape(RID p_body, int p_shape_idx) override {}
 	virtual void body_clear_shapes(RID p_body) override {}

@@ -249,7 +249,7 @@ void CanvasItem::edit_set_pivot(const Point2 &p_pivot) {
 	}
 #ifdef TOOLS_ENABLED
 	_edit_set_pivot(p_pivot);
-#endif	
+#endif
 }
 
 Point2 CanvasItem::edit_get_pivot() const {
