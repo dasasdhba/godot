@@ -143,6 +143,12 @@ real_t GodotPhysicsServer2D::shape_get_custom_solver_bias(RID p_shape) const {
 	return shape->get_custom_bias();
 }
 
+bool GodotPhysicsServer2D::shape_is_one_way_collision_allowed(RID p_shape) const {
+	const GodotShape2D *shape = shape_owner.get_or_null(p_shape);
+	ERR_FAIL_NULL_V(shape, false);
+	return shape->allows_one_way_collision();
+}
+
 void GodotPhysicsServer2D::_shape_col_cbk(const Vector2 &p_point_A, const Vector2 &p_point_B, void *p_userdata) {
 	CollCbkData *cbk = static_cast<CollCbkData *>(p_userdata);
 
@@ -629,6 +635,22 @@ Transform2D GodotPhysicsServer2D::body_get_shape_transform(RID p_body, int p_sha
 	ERR_FAIL_NULL_V(body, Transform2D());
 
 	return body->get_shape_transform(p_shape_idx);
+}
+
+bool GodotPhysicsServer2D::body_is_shape_set_as_one_way_collision(RID p_body, int p_shape_idx) const {
+	GodotBody2D *body = body_owner.get_or_null(p_body);
+	ERR_FAIL_NULL_V(body, false);
+	ERR_FAIL_INDEX_V(p_shape_idx, body->get_shape_count(), false);
+
+	return body->is_shape_set_as_one_way_collision(p_shape_idx);
+}
+
+real_t GodotPhysicsServer2D::body_get_shape_one_way_collision_margin(RID p_body, int p_shape_idx) const {
+	GodotBody2D *body = body_owner.get_or_null(p_body);
+	ERR_FAIL_NULL_V(body, 0);
+	ERR_FAIL_INDEX_V(p_shape_idx, body->get_shape_count(), 0);
+
+	return body->get_shape_one_way_collision_margin(p_shape_idx);
 }
 
 void GodotPhysicsServer2D::body_remove_shape(RID p_body, int p_shape_idx) {

@@ -381,6 +381,7 @@ Ref<PhysicsRayQueryResult2D> PhysicsDirectSpaceState2D::_intersect_ray(RequiredP
 
 Ref<PhysicsShapeQueryResults2D> PhysicsDirectSpaceState2D::_intersect_point(RequiredParam<PhysicsPointQueryParameters2D> rp_point_query, int p_max_results) {
 	EXTRACT_PARAM_OR_FAIL_V(p_point_query, rp_point_query, Ref<PhysicsShapeQueryResults2D>());
+	ERR_FAIL_COND_V(p_max_results < 0, Ref<PhysicsShapeQueryResults2D>());
 
 	Vector<ShapeResult> ret;
 	ret.resize(p_max_results);
@@ -394,14 +395,16 @@ Ref<PhysicsShapeQueryResults2D> PhysicsDirectSpaceState2D::_intersect_point(Requ
 	Ref<PhysicsShapeQueryResults2D> results;
 	results.instantiate();
 	results->results.resize(rc);
+	PhysicsDirectSpaceState2D::ShapeResult *w = results->results.ptrw();
 	for (int i = 0; i < rc; i++) {
-		results->results.push_back(ret[i]);
+		w[i] = ret[i];
 	}
 	return results;
 }
 
 Ref<PhysicsShapeQueryResults2D> PhysicsDirectSpaceState2D::_intersect_shape(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query, int p_max_results) {
 	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Ref<PhysicsShapeQueryResults2D>());
+	ERR_FAIL_COND_V(p_max_results < 0, Ref<PhysicsShapeQueryResults2D>());
 
 	Vector<ShapeResult> sr;
 	sr.resize(p_max_results);
@@ -409,8 +412,9 @@ Ref<PhysicsShapeQueryResults2D> PhysicsDirectSpaceState2D::_intersect_shape(Requ
 	Ref<PhysicsShapeQueryResults2D> results;
 	results.instantiate();
 	results->results.resize(rc);
+	PhysicsDirectSpaceState2D::ShapeResult *w = results->results.ptrw();
 	for (int i = 0; i < rc; i++) {
-		results->results.push_back(sr[i]);
+		w[i] = sr[i];
 	}
 
 	return results;
@@ -648,6 +652,7 @@ void PhysicsServer2D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("shape_get_type", "shape"), &PhysicsServer2D::shape_get_type);
 	ClassDB::bind_method(D_METHOD("shape_get_data", "shape"), &PhysicsServer2D::shape_get_data);
+	ClassDB::bind_method(D_METHOD("shape_is_one_way_collision_allowed", "shape"), &PhysicsServer2D::shape_is_one_way_collision_allowed);
 
 	ClassDB::bind_method(D_METHOD("space_create"), &PhysicsServer2D::space_create);
 	ClassDB::bind_method(D_METHOD("space_set_active", "space", "active"), &PhysicsServer2D::space_set_active);
@@ -715,6 +720,8 @@ void PhysicsServer2D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("body_set_shape_disabled", "body", "shape_idx", "disabled"), &PhysicsServer2D::body_set_shape_disabled);
 	ClassDB::bind_method(D_METHOD("body_set_shape_as_one_way_collision", "body", "shape_idx", "enable", "margin"), &PhysicsServer2D::body_set_shape_as_one_way_collision);
+	ClassDB::bind_method(D_METHOD("body_is_shape_set_as_one_way_collision", "body", "shape_idx"), &PhysicsServer2D::body_is_shape_set_as_one_way_collision);
+	ClassDB::bind_method(D_METHOD("body_get_shape_one_way_collision_margin", "body", "shape_idx"), &PhysicsServer2D::body_get_shape_one_way_collision_margin);
 
 	ClassDB::bind_method(D_METHOD("body_attach_object_instance_id", "body", "id"), &PhysicsServer2D::body_attach_object_instance_id);
 	ClassDB::bind_method(D_METHOD("body_get_object_instance_id", "body"), &PhysicsServer2D::body_get_object_instance_id);

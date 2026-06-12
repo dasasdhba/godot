@@ -95,6 +95,7 @@ public:
 	FUNC1RC(ShapeType, shape_get_type, RID);
 	FUNC1RC(Variant, shape_get_data, RID);
 	FUNC1RC(real_t, shape_get_custom_solver_bias, RID);
+	FUNC1RC(bool, shape_is_one_way_collision_allowed, RID);
 
 	//these work well, but should be used from the main thread only
 	bool shape_collide(RID p_shape_A, const Transform2D &p_xform_A, const Vector2 &p_motion_A, RID p_shape_B, const Transform2D &p_xform_B, const Vector2 &p_motion_B, Vector2 *r_results, int p_result_max, int &r_result_count) override {
@@ -192,6 +193,8 @@ public:
 
 	FUNC3(body_set_shape_disabled, RID, int, bool);
 	FUNC4(body_set_shape_as_one_way_collision, RID, int, bool, real_t);
+	FUNC2RC(bool, body_is_shape_set_as_one_way_collision, RID, int);
+	FUNC2RC(real_t, body_get_shape_one_way_collision_margin, RID, int);
 
 	FUNC2(body_remove_shape, RID, int);
 	FUNC1(body_clear_shapes, RID);

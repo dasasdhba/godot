@@ -968,10 +968,22 @@ public:
 	Vector<PhysicsDirectSpaceState3D::ShapeResult> results;
 
 	int get_collision_count() const { return results.size(); }
-	RID get_rid(int p_index) const { return results[p_index].rid; }
-	ObjectID get_collider_id(int p_index) const { return results[p_index].collider_id; }
-	Object *get_collider(int p_index) const { return results[p_index].collider; }
-	int get_shape(int p_index) const { return results[p_index].shape; }
+	RID get_rid(int p_index) const {
+		ERR_FAIL_INDEX_V(p_index, results.size(), RID());
+		return results[p_index].rid;
+	}
+	ObjectID get_collider_id(int p_index) const {
+		ERR_FAIL_INDEX_V(p_index, results.size(), ObjectID());
+		return results[p_index].collider_id;
+	}
+	Object *get_collider(int p_index) const {
+		ERR_FAIL_INDEX_V(p_index, results.size(), nullptr);
+		return results[p_index].collider;
+	}
+	int get_shape(int p_index) const {
+		ERR_FAIL_INDEX_V(p_index, results.size(), -1);
+		return results[p_index].shape;
+	}
 };
 
 class PhysicsShapeRestInfo3D : public RefCounted {

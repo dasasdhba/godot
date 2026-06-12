@@ -406,6 +406,7 @@ Ref<PhysicsRayQueryResult3D> PhysicsDirectSpaceState3D::_intersect_ray(RequiredP
 
 Ref<PhysicsShapeQueryResults3D> PhysicsDirectSpaceState3D::_intersect_point(RequiredParam<PhysicsPointQueryParameters3D> rp_point_query, int p_max_results) {
 	EXTRACT_PARAM_OR_FAIL_V(p_point_query, rp_point_query, Ref<PhysicsShapeQueryResults3D>());
+	ERR_FAIL_COND_V(p_max_results < 0, Ref<PhysicsShapeQueryResults3D>());
 
 	Vector<ShapeResult> ret;
 	ret.resize(p_max_results);
@@ -419,14 +420,16 @@ Ref<PhysicsShapeQueryResults3D> PhysicsDirectSpaceState3D::_intersect_point(Requ
 	Ref<PhysicsShapeQueryResults3D> results;
 	results.instantiate();
 	results->results.resize(rc);
+	PhysicsDirectSpaceState3D::ShapeResult *w = results->results.ptrw();
 	for (int i = 0; i < rc; i++) {
-		results->results.push_back(ret[i]);
+		w[i] = ret[i];
 	}
 	return results;
 }
 
 Ref<PhysicsShapeQueryResults3D> PhysicsDirectSpaceState3D::_intersect_shape(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query, int p_max_results) {
 	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Ref<PhysicsShapeQueryResults3D>());
+	ERR_FAIL_COND_V(p_max_results < 0, Ref<PhysicsShapeQueryResults3D>());
 
 	Vector<ShapeResult> sr;
 	sr.resize(p_max_results);
@@ -434,8 +437,9 @@ Ref<PhysicsShapeQueryResults3D> PhysicsDirectSpaceState3D::_intersect_shape(Requ
 	Ref<PhysicsShapeQueryResults3D> results;
 	results.instantiate();
 	results->results.resize(rc);
+	PhysicsDirectSpaceState3D::ShapeResult *w = results->results.ptrw();
 	for (int i = 0; i < rc; i++) {
-		results->results.push_back(sr[i]);
+		w[i] = sr[i];
 	}
 
 	return results;
