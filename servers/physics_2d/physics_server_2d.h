@@ -390,6 +390,7 @@ public:
 	virtual void body_set_shape_as_one_way_collision(RID p_body, int p_shape, bool p_enabled, real_t p_margin = 0, const Vector2 &p_direction = Vector2(0, 1)) = 0;
 	virtual bool body_is_shape_set_as_one_way_collision(RID p_body, int p_shape_idx) const = 0;
 	virtual real_t body_get_shape_one_way_collision_margin(RID p_body, int p_shape_idx) const = 0;
+	virtual Vector2 body_get_shape_one_way_collision_direction(RID p_body, int p_shape_idx) const = 0;
 
 	virtual void body_remove_shape(RID p_body, int p_shape_idx) = 0;
 	virtual void body_clear_shapes(RID p_body) = 0;

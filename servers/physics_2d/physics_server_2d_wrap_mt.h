@@ -195,6 +195,7 @@ public:
 	FUNC5(body_set_shape_as_one_way_collision, RID, int, bool, real_t, const Vector2 &);
 	FUNC2RC(bool, body_is_shape_set_as_one_way_collision, RID, int);
 	FUNC2RC(real_t, body_get_shape_one_way_collision_margin, RID, int);
+	FUNC2RC(Vector2, body_get_shape_one_way_collision_direction, RID, int);
 
 	FUNC2(body_remove_shape, RID, int);
 	FUNC1(body_clear_shapes, RID);

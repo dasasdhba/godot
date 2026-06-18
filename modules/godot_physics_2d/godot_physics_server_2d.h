@@ -189,6 +189,7 @@ public:
 	virtual void body_set_shape_as_one_way_collision(RID p_body, int p_shape_idx, bool p_enable, real_t p_margin, const Vector2 &p_direction) override;
 	virtual bool body_is_shape_set_as_one_way_collision(RID p_body, int p_shape_idx) const override;
 	virtual real_t body_get_shape_one_way_collision_margin(RID p_body, int p_shape_idx) const override;
+	virtual Vector2 body_get_shape_one_way_collision_direction(RID p_body, int p_shape_idx) const override;
 
 	virtual void body_attach_object_instance_id(RID p_body, ObjectID p_id) override;
 	virtual ObjectID body_get_object_instance_id(RID p_body) const override;

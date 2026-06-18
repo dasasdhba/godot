@@ -724,6 +724,7 @@ void PhysicsServer2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("body_set_shape_as_one_way_collision", "body", "shape_idx", "enable", "margin", "direction"), &PhysicsServer2D::body_set_shape_as_one_way_collision, Vector2(0, 1));
 	ClassDB::bind_method(D_METHOD("body_is_shape_set_as_one_way_collision", "body", "shape_idx"), &PhysicsServer2D::body_is_shape_set_as_one_way_collision);
 	ClassDB::bind_method(D_METHOD("body_get_shape_one_way_collision_margin", "body", "shape_idx"), &PhysicsServer2D::body_get_shape_one_way_collision_margin);
+	ClassDB::bind_method(D_METHOD("body_get_shape_one_way_collision_direction", "body", "shape_idx"), &PhysicsServer2D::body_get_shape_one_way_collision_direction);
 
 	ClassDB::bind_method(D_METHOD("body_attach_object_instance_id", "body", "id"), &PhysicsServer2D::body_attach_object_instance_id);
 	ClassDB::bind_method(D_METHOD("body_get_object_instance_id", "body"), &PhysicsServer2D::body_get_object_instance_id);

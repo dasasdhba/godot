@@ -652,6 +652,14 @@ real_t GodotPhysicsServer2D::body_get_shape_one_way_collision_margin(RID p_body,
 	return body->get_shape_one_way_collision_margin(p_shape_idx);
 }
 
+Vector2 GodotPhysicsServer2D::body_get_shape_one_way_collision_direction(RID p_body, int p_shape_idx) const {
+	GodotBody2D *body = body_owner.get_or_null(p_body);
+	ERR_FAIL_NULL_V(body, Vector2());
+	ERR_FAIL_INDEX_V(p_shape_idx, body->get_shape_count(), Vector2());
+
+	return body->get_shape_one_way_collision_direction(p_shape_idx);
+}
+
 void GodotPhysicsServer2D::body_remove_shape(RID p_body, int p_shape_idx) {
 	GodotBody2D *body = body_owner.get_or_null(p_body);
 	ERR_FAIL_NULL(body);

@@ -484,6 +484,22 @@
 				Overridable version of [method PhysicsServer2D.body_get_shape_count].
 			</description>
 		</method>
+		<method name="_body_get_shape_one_way_collision_direction" qualifiers="virtual required const">
+			<return type="Vector2" />
+			<param index="0" name="body" type="RID" />
+			<param index="1" name="shape_idx" type="int" />
+			<description>
+				Overridable version of [method PhysicsServer2D.body_get_shape_one_way_collision_direction].
+			</description>
+		</method>
+		<method name="_body_get_shape_one_way_collision_margin" qualifiers="virtual required const">
+			<return type="float" />
+			<param index="0" name="body" type="RID" />
+			<param index="1" name="shape_idx" type="int" />
+			<description>
+				Overridable version of [method PhysicsServer2D.body_get_shape_one_way_collision_margin].
+			</description>
+		</method>
 		<method name="_body_get_shape_transform" qualifiers="virtual required const">
 			<return type="Transform2D" />
 			<param index="0" name="body" type="RID" />
@@ -512,6 +528,14 @@
 			<param index="0" name="body" type="RID" />
 			<description>
 				Overridable version of [method PhysicsServer2D.body_is_omitting_force_integration].
+			</description>
+		</method>
+		<method name="_body_is_shape_set_as_one_way_collision" qualifiers="virtual required const">
+			<return type="bool" />
+			<param index="0" name="body" type="RID" />
+			<param index="1" name="shape_idx" type="int" />
+			<description>
+				Overridable version of [method PhysicsServer2D.body_is_shape_set_as_one_way_collision].
 			</description>
 		</method>
 		<method name="_body_remove_collision_exception" qualifiers="virtual required">

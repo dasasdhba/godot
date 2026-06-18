@@ -476,6 +476,22 @@
 				Returns the number of shapes added to the body.
 			</description>
 		</method>
+		<method name="body_get_shape_one_way_collision_direction" qualifiers="const">
+			<return type="Vector2" />
+			<param index="0" name="body" type="RID" />
+			<param index="1" name="shape_idx" type="int" />
+			<description>
+				Returns the one-way collision direction of the body's shape with the given index, in the shape's local space.
+			</description>
+		</method>
+		<method name="body_get_shape_one_way_collision_margin" qualifiers="const">
+			<return type="float" />
+			<param index="0" name="body" type="RID" />
+			<param index="1" name="shape_idx" type="int" />
+			<description>
+				Returns the one-way collision margin of the body's shape with the given index.
+			</description>
+		</method>
 		<method name="body_get_shape_transform" qualifiers="const">
 			<return type="Transform2D" />
 			<param index="0" name="body" type="RID" />
@@ -504,6 +520,14 @@
 			<param index="0" name="body" type="RID" />
 			<description>
 				Returns [code]true[/code] if the body is omitting the standard force integration. See [method body_set_omit_force_integration].
+			</description>
+		</method>
+		<method name="body_is_shape_set_as_one_way_collision" qualifiers="const">
+			<return type="bool" />
+			<param index="0" name="body" type="RID" />
+			<param index="1" name="shape_idx" type="int" />
+			<description>
+				Returns [code]true[/code] if the body's shape with the given index uses one-way collision.
 			</description>
 		</method>
 		<method name="body_remove_collision_exception">
