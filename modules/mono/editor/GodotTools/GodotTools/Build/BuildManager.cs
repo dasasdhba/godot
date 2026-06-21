@@ -15,12 +15,14 @@ namespace GodotTools.Build
 
         public const string MsBuildIssuesFileName = "msbuild_issues.csv";
         private const string MsBuildLogFileName = "msbuild_log.txt";
+        private const string LastSuccessfulBuildStampFileName = ".last_successful_build";
 
         public delegate void BuildLaunchFailedEventHandler(BuildInfo buildInfo, string reason);
 
         public static event BuildLaunchFailedEventHandler? BuildLaunchFailed;
         public static event Action<BuildInfo>? BuildStarted;
         public static event Action<BuildResult>? BuildFinished;
+        public static event Action? LastValidBuildDateTimeChanged;
         public static event Action<string?>? StdOutputReceived;
         public static event Action<string?>? StdErrorReceived;
 
@@ -28,14 +30,45 @@ namespace GodotTools.Build
 
         static BuildManager()
         {
-            UpdateLastValidBuildDateTime();
+            LastValidBuildDateTime = GetLastValidBuildDateTime();
+        }
+
+        private static string GetLastSuccessfulBuildStampPath()
+        {
+            return Path.Combine(GodotSharpDirs.ProjectBaseOutputPath, LastSuccessfulBuildStampFileName);
+        }
+
+        private static DateTime GetLastValidBuildDateTime()
+        {
+            string stampPath = GetLastSuccessfulBuildStampPath();
+            if (File.Exists(stampPath))
+                return File.GetLastWriteTime(stampPath);
+
+            // Compatibility fallback for projects which have not created a build stamp yet.
+            var dllName = $"{GodotSharpDirs.ProjectAssemblyName}.dll";
+            var path = Path.Combine(GodotSharpDirs.ProjectBaseOutputPath, "Debug", dllName);
+            return File.GetLastWriteTime(path);
         }
 
         public static void UpdateLastValidBuildDateTime()
         {
-            var dllName = $"{GodotSharpDirs.ProjectAssemblyName}.dll";
-            var path = Path.Combine(GodotSharpDirs.ProjectBaseOutputPath, "Debug", dllName);
-            LastValidBuildDateTime = File.GetLastWriteTime(path);
+            string stampPath = GetLastSuccessfulBuildStampPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(stampPath)!);
+            System.IO.File.WriteAllText(stampPath, DateTime.UtcNow.Ticks.ToString());
+            LastValidBuildDateTime = System.IO.File.GetLastWriteTime(stampPath);
+            LastValidBuildDateTimeChanged?.Invoke();
+        }
+
+        private static void UpdateLastValidBuildDateTimeIfNeeded(BuildInfo buildInfo, int exitCode)
+        {
+            // The inspector uses the Debug assemblies loaded by the editor. A successful
+            // build is authoritative even when MSBuild does not rewrite the main assembly,
+            // which commonly happens when only a referenced project changed.
+            if (exitCode == 0 && !buildInfo.OnlyClean &&
+                string.Equals(buildInfo.Configuration, "Debug", StringComparison.OrdinalIgnoreCase))
+            {
+                UpdateLastValidBuildDateTime();
+            }
         }
 
         private static void RemoveOldIssuesFile(BuildInfo buildInfo)
@@ -102,6 +135,7 @@ namespace GodotTools.Build
                     if (exitCode != 0)
                         PrintVerbose($"MSBuild exited with code: {exitCode}. Log file: {GetLogFilePath(buildInfo)}");
 
+                    UpdateLastValidBuildDateTimeIfNeeded(buildInfo, exitCode);
                     BuildFinished?.Invoke(exitCode == 0 ? BuildResult.Success : BuildResult.Error);
 
                     return exitCode == 0;
@@ -148,6 +182,7 @@ namespace GodotTools.Build
                     if (exitCode != 0)
                         PrintVerbose($"MSBuild exited with code: {exitCode}. Log file: {GetLogFilePath(buildInfo)}");
 
+                    UpdateLastValidBuildDateTimeIfNeeded(buildInfo, exitCode);
                     BuildFinished?.Invoke(exitCode == 0 ? BuildResult.Success : BuildResult.Error);
 
                     return exitCode == 0;

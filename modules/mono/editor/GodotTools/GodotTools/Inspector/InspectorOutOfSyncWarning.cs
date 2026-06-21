@@ -1,10 +1,26 @@
 using Godot;
+using GodotTools.Build;
 using GodotTools.Internals;
 
 namespace GodotTools.Inspector
 {
     public partial class InspectorOutOfSyncWarning : HBoxContainer
     {
+        public override void _EnterTree()
+        {
+            BuildManager.LastValidBuildDateTimeChanged += LastValidBuildDateTimeChanged;
+        }
+
+        public override void _ExitTree()
+        {
+            BuildManager.LastValidBuildDateTimeChanged -= LastValidBuildDateTimeChanged;
+        }
+
+        private void LastValidBuildDateTimeChanged()
+        {
+            CallDeferred("queue_free");
+        }
+
         public override void _Ready()
         {
             SetAnchorsPreset(LayoutPreset.TopWide);
