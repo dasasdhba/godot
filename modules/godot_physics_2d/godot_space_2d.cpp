@@ -362,6 +362,15 @@ bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parame
 				Transform2D contact_transform = p_parameters.transform;
 				contact_transform.set_origin(contact_transform.get_origin() + p_parameters.motion * hi);
 				bool collided = GodotCollisionSolver2D::solve(shape, contact_transform, Vector2(), col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, nullptr, p_parameters.margin);
+				if (collided && !rest_data.valid) {
+					// The unsafe fraction can land exactly on a zero-depth
+					// contact. Move one final search interval into the
+					// collision so the solver can produce a contact normal.
+					real_t rest_fraction = MIN(1.0, hi + (hi - low));
+					contact_transform = p_parameters.transform;
+					contact_transform.set_origin(contact_transform.get_origin() + p_parameters.motion * rest_fraction);
+					collided = GodotCollisionSolver2D::solve(shape, contact_transform, Vector2(), col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, nullptr, p_parameters.margin);
+				}
 				if (collided && rest_data.valid) {
 					r_info->point = rest_data.point;
 					r_info->normal = rest_data.normal;
