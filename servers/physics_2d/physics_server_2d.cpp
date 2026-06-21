@@ -157,6 +157,11 @@ void PhysicsDirectBodyState2D::_bind_methods() {
 
 PhysicsDirectBodyState2D::PhysicsDirectBodyState2D() {}
 
+void PhysicsShapeCastResult2D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_closest_safe"), &PhysicsShapeCastResult2D::get_closest_safe);
+	ClassDB::bind_method(D_METHOD("get_closest_unsafe"), &PhysicsShapeCastResult2D::get_closest_unsafe);
+}
+
 ///////////////////////////////////////////////////////
 
 Ref<PhysicsRayQueryParameters2D> PhysicsRayQueryParameters2D::create(Vector2 p_from, Vector2 p_to, uint32_t p_mask, const TypedArray<RID> &p_exclude) {
@@ -422,19 +427,16 @@ Ref<PhysicsShapeQueryResults2D> PhysicsDirectSpaceState2D::_intersect_shape(Requ
 	return results;
 }
 
-Vector<real_t> PhysicsDirectSpaceState2D::_cast_motion(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query) {
-	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Vector<real_t>());
+Ref<PhysicsShapeCastResult2D> PhysicsDirectSpaceState2D::_cast_motion(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query) {
+	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Ref<PhysicsShapeCastResult2D>());
 
-	real_t closest_safe, closest_unsafe;
-	bool res = cast_motion(p_shape_query->get_parameters(), closest_safe, closest_unsafe);
+	Ref<PhysicsShapeCastResult2D> result;
+	result.instantiate();
+	bool res = cast_motion(p_shape_query->get_parameters(), result->closest_safe, result->closest_unsafe, &result->rest);
 	if (!res) {
-		return Vector<real_t>();
+		return Ref<PhysicsShapeCastResult2D>();
 	}
-	Vector<real_t> ret;
-	ret.resize(2);
-	ret.write[0] = closest_safe;
-	ret.write[1] = closest_unsafe;
-	return ret;
+	return result;
 }
 
 TypedArray<Vector2> PhysicsDirectSpaceState2D::_collide_shape(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query, int p_max_results) {

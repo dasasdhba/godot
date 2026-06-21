@@ -386,6 +386,11 @@ void PhysicsShapeRestInfo3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_linear_velocity"), &PhysicsShapeRestInfo3D::get_linear_velocity);
 }
 
+void PhysicsShapeCastResult3D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_closest_safe"), &PhysicsShapeCastResult3D::get_closest_safe);
+	ClassDB::bind_method(D_METHOD("get_closest_unsafe"), &PhysicsShapeCastResult3D::get_closest_unsafe);
+}
+
 //////////////////////////////////////////////////////
 
 Ref<PhysicsRayQueryResult3D> PhysicsDirectSpaceState3D::_intersect_ray(RequiredParam<PhysicsRayQueryParameters3D> rp_ray_query) {
@@ -446,19 +451,16 @@ Ref<PhysicsShapeQueryResults3D> PhysicsDirectSpaceState3D::_intersect_shape(Requ
 	return results;
 }
 
-Vector<real_t> PhysicsDirectSpaceState3D::_cast_motion(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query) {
-	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Vector<real_t>());
+Ref<PhysicsShapeCastResult3D> PhysicsDirectSpaceState3D::_cast_motion(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query) {
+	EXTRACT_PARAM_OR_FAIL_V(p_shape_query, rp_shape_query, Ref<PhysicsShapeCastResult3D>());
 
-	real_t closest_safe = 1.0f, closest_unsafe = 1.0f;
-	bool res = cast_motion(p_shape_query->get_parameters(), closest_safe, closest_unsafe);
+	Ref<PhysicsShapeCastResult3D> result;
+	result.instantiate();
+	bool res = cast_motion(p_shape_query->get_parameters(), result->closest_safe, result->closest_unsafe, &result->rest);
 	if (!res) {
-		return Vector<real_t>();
+		return Ref<PhysicsShapeCastResult3D>();
 	}
-	Vector<real_t> ret;
-	ret.resize(2);
-	ret.write[0] = closest_safe;
-	ret.write[1] = closest_unsafe;
-	return ret;
+	return result;
 }
 
 TypedArray<Vector3> PhysicsDirectSpaceState3D::_collide_shape(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query, int p_max_results) {

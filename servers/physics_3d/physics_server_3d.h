@@ -124,6 +124,7 @@ class PhysicsShapeQueryParameters3D;
 class PhysicsRayQueryResult3D;
 class PhysicsShapeQueryResults3D;
 class PhysicsShapeRestInfo3D;
+class PhysicsShapeCastResult3D;
 
 class PhysicsDirectSpaceState3D : public Object {
 	GDCLASS(PhysicsDirectSpaceState3D, Object);
@@ -132,7 +133,7 @@ private:
 	Ref<PhysicsRayQueryResult3D> _intersect_ray(RequiredParam<PhysicsRayQueryParameters3D> rp_ray_query);
 	Ref<PhysicsShapeQueryResults3D> _intersect_point(RequiredParam<PhysicsPointQueryParameters3D> rp_point_query, int p_max_results = 32);
 	Ref<PhysicsShapeQueryResults3D> _intersect_shape(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query, int p_max_results = 32);
-	Vector<real_t> _cast_motion(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query);
+	Ref<PhysicsShapeCastResult3D> _cast_motion(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query);
 	TypedArray<Vector3> _collide_shape(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query, int p_max_results = 32);
 	Ref<PhysicsShapeRestInfo3D> _get_rest_info(RequiredParam<PhysicsShapeQueryParameters3D> rp_shape_query);
 
@@ -1001,6 +1002,20 @@ public:
 	ObjectID get_collider_id() const { return rest.collider_id; }
 	int get_shape() const { return rest.shape; }
 	Vector3 get_linear_velocity() const { return rest.linear_velocity; }
+};
+
+class PhysicsShapeCastResult3D : public PhysicsShapeRestInfo3D {
+	GDCLASS(PhysicsShapeCastResult3D, PhysicsShapeRestInfo3D);
+
+protected:
+	static void _bind_methods();
+
+public:
+	real_t closest_safe = 1.0;
+	real_t closest_unsafe = 1.0;
+
+	real_t get_closest_safe() const { return closest_safe; }
+	real_t get_closest_unsafe() const { return closest_unsafe; }
 };
 
 class PhysicsTestMotionParameters3D : public RefCounted {

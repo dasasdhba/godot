@@ -254,9 +254,33 @@ int GodotPhysicsDirectSpaceState2D::intersect_shape(const ShapeParameters &p_par
 	return cc;
 }
 
-bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parameters, real_t &p_closest_safe, real_t &p_closest_unsafe) {
+struct _CastMotionRestCallbackData2D {
+	Vector2 point;
+	Vector2 normal;
+	real_t depth = 0.0;
+	bool valid = false;
+};
+
+static void _cast_motion_rest_cbk_result(const Vector2 &p_point_A, const Vector2 &p_point_B, void *p_userdata) {
+	_CastMotionRestCallbackData2D *rd = static_cast<_CastMotionRestCallbackData2D *>(p_userdata);
+	Vector2 contact_rel = p_point_B - p_point_A;
+	real_t depth = contact_rel.length();
+	if (depth <= rd->depth || Math::is_zero_approx(depth)) {
+		return;
+	}
+
+	rd->point = p_point_B;
+	rd->normal = contact_rel / depth;
+	rd->depth = depth;
+	rd->valid = true;
+}
+
+bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parameters, real_t &p_closest_safe, real_t &p_closest_unsafe, ShapeRestInfo *r_info) {
 	GodotShape2D *shape = GodotPhysicsServer2D::godot_singleton->shape_owner.get_or_null(p_parameters.shape_rid);
 	ERR_FAIL_NULL_V(shape, false);
+	if (r_info) {
+		*r_info = ShapeRestInfo();
+	}
 
 	Rect2 aabb = p_parameters.transform.xform(shape->get_aabb());
 	aabb = aabb.merge(Rect2(aabb.position + p_parameters.motion, aabb.size)); //motion
@@ -328,6 +352,28 @@ bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parame
 		if (low < best_safe) {
 			best_safe = low;
 			best_unsafe = hi;
+
+			if (r_info) {
+				*r_info = ShapeRestInfo();
+				r_info->collider_id = col_obj->get_instance_id();
+				r_info->rid = col_obj->get_self();
+				r_info->shape = shape_idx;
+				_CastMotionRestCallbackData2D rest_data;
+				Transform2D contact_transform = p_parameters.transform;
+				contact_transform.set_origin(contact_transform.get_origin() + p_parameters.motion * hi);
+				bool collided = GodotCollisionSolver2D::solve(shape, contact_transform, Vector2(), col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, nullptr, p_parameters.margin);
+				if (collided && rest_data.valid) {
+					r_info->point = rest_data.point;
+					r_info->normal = rest_data.normal;
+					if (col_obj->get_type() == GodotCollisionObject2D::TYPE_BODY) {
+						const GodotBody2D *body = static_cast<const GodotBody2D *>(col_obj);
+						Vector2 rel_vec = rest_data.point - (body->get_transform().get_origin() + body->get_center_of_mass());
+						r_info->linear_velocity = Vector2(-body->get_angular_velocity() * rel_vec.y, body->get_angular_velocity() * rel_vec.x) + body->get_linear_velocity();
+					} else {
+						r_info->linear_velocity = Vector2();
+					}
+				}
+			}
 		}
 	}
 

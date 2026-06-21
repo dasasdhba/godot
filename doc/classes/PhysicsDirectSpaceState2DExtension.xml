@@ -21,6 +21,7 @@
 			<param index="6" name="collide_with_areas" type="bool" />
 			<param index="7" name="r_closest_safe" type="float*" />
 			<param index="8" name="r_closest_unsafe" type="float*" />
+			<param index="9" name="r_info" type="PhysicsServer2DExtensionShapeRestInfo*" />
 			<description>
 			</description>
 		</method>

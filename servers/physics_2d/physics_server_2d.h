@@ -122,6 +122,7 @@ class PhysicsShapeQueryParameters2D;
 class PhysicsRayQueryResult2D;
 class PhysicsShapeQueryResults2D;
 class PhysicsShapeRestInfo2D;
+class PhysicsShapeCastResult2D;
 
 class PhysicsDirectSpaceState2D : public Object {
 	GDCLASS(PhysicsDirectSpaceState2D, Object);
@@ -129,9 +130,10 @@ class PhysicsDirectSpaceState2D : public Object {
 	Ref<PhysicsRayQueryResult2D> _intersect_ray(RequiredParam<PhysicsRayQueryParameters2D> rp_ray_query);
 	Ref<PhysicsShapeQueryResults2D> _intersect_point(RequiredParam<PhysicsPointQueryParameters2D> rp_point_query, int p_max_results = 32);
 	Ref<PhysicsShapeQueryResults2D> _intersect_shape(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query, int p_max_results = 32);
-	Vector<real_t> _cast_motion(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query);
+	Ref<PhysicsShapeCastResult2D> _cast_motion(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query);
 	TypedArray<Vector2> _collide_shape(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query, int p_max_results = 32);
 	Ref<PhysicsShapeRestInfo2D> _get_rest_info(RequiredParam<PhysicsShapeQueryParameters2D> rp_shape_query);
+
 protected:
 	static void _bind_methods();
 
@@ -202,7 +204,7 @@ public:
 	};
 
 	virtual int intersect_shape(const ShapeParameters &p_parameters, ShapeResult *r_results, int p_result_max) = 0;
-	virtual bool cast_motion(const ShapeParameters &p_parameters, real_t &p_closest_safe, real_t &p_closest_unsafe) = 0;
+	virtual bool cast_motion(const ShapeParameters &p_parameters, real_t &p_closest_safe, real_t &p_closest_unsafe, ShapeRestInfo *r_info = nullptr) = 0;
 	virtual bool collide_shape(const ShapeParameters &p_parameters, Vector2 *r_results, int p_result_max, int &r_result_count) = 0;
 	virtual bool rest_info(const ShapeParameters &p_parameters, ShapeRestInfo *r_info) = 0;
 
@@ -800,6 +802,20 @@ public:
 	ObjectID get_collider_id() const { return rest.collider_id; }
 	int get_shape() const { return rest.shape; }
 	Vector2 get_linear_velocity() const { return rest.linear_velocity; }
+};
+
+class PhysicsShapeCastResult2D : public PhysicsShapeRestInfo2D {
+	GDCLASS(PhysicsShapeCastResult2D, PhysicsShapeRestInfo2D);
+
+protected:
+	static void _bind_methods();
+
+public:
+	real_t closest_safe = 1.0;
+	real_t closest_unsafe = 1.0;
+
+	real_t get_closest_safe() const { return closest_safe; }
+	real_t get_closest_unsafe() const { return closest_unsafe; }
 };
 
 class PhysicsTestMotionParameters2D : public RefCounted {
