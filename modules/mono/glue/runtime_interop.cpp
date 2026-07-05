@@ -86,6 +86,26 @@ Object *godotsharp_engine_get_singleton(const String *p_name) {
 	return Engine::get_singleton()->get_singleton_object(*p_name);
 }
 
+bool godotsharp_project_settings_has_setting(const String *p_name) {
+	return ProjectSettings::get_singleton()->has_setting(*p_name);
+}
+
+void godotsharp_project_settings_get_setting(const String *p_name, Variant *r_dest) {
+	memnew_placement(r_dest, Variant(ProjectSettings::get_singleton()->get_setting(*p_name)));
+}
+
+void godotsharp_project_settings_set_setting(const String *p_name, const Variant *p_value) {
+	ProjectSettings::get_singleton()->set_setting(*p_name, *p_value);
+}
+
+Error godotsharp_project_settings_save() {
+	return ProjectSettings::get_singleton()->save();
+}
+
+void godotsharp_project_settings_globalize_path(const String *p_path, String *r_dest) {
+	memnew_placement(r_dest, String(ProjectSettings::get_singleton()->globalize_path(*p_path)));
+}
+
 int32_t godotsharp_stack_info_vector_resize(
 		Vector<ScriptLanguage::StackInfo> *p_stack_info_vector, int p_size) {
 	return (int32_t)p_stack_info_vector->resize(p_size);
@@ -1626,6 +1646,11 @@ static const void *unmanaged_callbacks[]{
 	(void *)godotsharp_method_bind_get_method_with_compatibility,
 	(void *)godotsharp_get_class_constructor,
 	(void *)godotsharp_engine_get_singleton,
+	(void *)godotsharp_project_settings_has_setting,
+	(void *)godotsharp_project_settings_get_setting,
+	(void *)godotsharp_project_settings_set_setting,
+	(void *)godotsharp_project_settings_save,
+	(void *)godotsharp_project_settings_globalize_path,
 	(void *)godotsharp_stack_info_vector_resize,
 	(void *)godotsharp_stack_info_vector_destroy,
 	(void *)godotsharp_internal_editor_file_system_update_files,

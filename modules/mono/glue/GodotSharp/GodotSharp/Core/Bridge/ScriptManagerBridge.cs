@@ -13,6 +13,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using Godot.NativeInterop;
 
 namespace Godot.Bridge
@@ -86,6 +88,9 @@ namespace Godot.Bridge
 
         private static ConcurrentDictionary<IntPtr, (string? assemblyName, string classFullName)>
             _scriptDataForReload = new();
+
+        private const string AssemblyRemapSetting = "dotnet/project/assembly_remap";
+        private const string AssemblyListSetting = "dotnet/project/assembly_list";
 
         [UnmanagedCallersOnly]
         internal static void FrameCallback()
@@ -306,12 +311,10 @@ namespace Godot.Bridge
         }
 
         /// <summary>
-        /// Scans all DLLs in the same directory as the main assembly for Godot script types.
-        /// This enables multi-assembly C# project support where scripts defined in external
-        /// assemblies (via ProjectReference) are discovered automatically.
-        /// We scan the output directory rather than using Assembly.GetReferencedAssemblies()
-        /// because the .NET compiler strips references for assemblies whose types are not
-        /// directly used in code.
+        /// Looks up Godot script types in direct project dependencies. In editor/debug runs,
+        /// this reads the main C# project file and stores successfully loaded assemblies in
+        /// project settings. Exported games use the stored list because the project file isn't
+        /// available there.
         /// </summary>
         public static unsafe void LookupScriptsInReferencedAssemblies(Assembly mainAssembly,
             string? assemblyPath = null)
@@ -336,19 +339,26 @@ namespace Godot.Bridge
             if (string.IsNullOrEmpty(assemblyDir) || !Directory.Exists(assemblyDir))
                 return;
 
-            var externalScriptTypes = new List<Type>();
-
-            foreach (string dllPath in Directory.GetFiles(assemblyDir, "*.dll"))
+            bool canUpdateAssemblyList = TryGetProjectCsProjPath(mainAssemblyName, out string? csprojPath);
+            List<string> assemblyNames;
+            if (canUpdateAssemblyList)
             {
-                string dllName = Path.GetFileNameWithoutExtension(dllPath);
+                assemblyNames = GetReferencedAssemblyNamesFromProject(csprojPath!);
+            }
+            else
+            {
+                assemblyNames = GetStoredReferencedAssemblyNames();
+            }
 
-                if (dllName == mainAssemblyName ||
-                    dllName.StartsWith("System", StringComparison.Ordinal) ||
-                    dllName.StartsWith("Microsoft", StringComparison.Ordinal) ||
-                    dllName.StartsWith("netstandard", StringComparison.Ordinal) ||
-                    dllName == "GodotSharp" ||
-                    dllName == "GodotSharpEditor" ||
-                    dllName == "GodotPlugins")
+            if (assemblyNames.Count == 0)
+                return;
+
+            var externalScriptTypes = new List<Type>();
+            var loadedScriptAssemblies = new SortedSet<string>(StringComparer.Ordinal);
+
+            foreach (string assemblyName in assemblyNames)
+            {
+                if (IsIgnoredReferencedAssembly(assemblyName, mainAssemblyName))
                 {
                     continue;
                 }
@@ -356,16 +366,16 @@ namespace Godot.Bridge
                 Assembly depAssembly;
                 try
                 {
-                    depAssembly = alc.LoadFromAssemblyName(new AssemblyName(dllName));
+                    depAssembly = alc.LoadFromAssemblyName(new AssemblyName(assemblyName));
                 }
                 catch (BadImageFormatException)
                 {
                     continue;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //if (OS.IsStdOutVerbose())
-                    //Console.Error.WriteLine($"[.NET] Failed to load '{dllName}': {e.Message}");
+                    //Console.Error.WriteLine($"[.NET] Failed to load '{assemblyName}'.");
                     continue;
                 }
 
@@ -377,6 +387,12 @@ namespace Godot.Bridge
                     continue;
 
                 LookupScriptsInAssembly(depAssembly, externalScriptTypes);
+                loadedScriptAssemblies.Add(depAssembly.GetName().Name ?? assemblyName);
+            }
+
+            if (canUpdateAssemblyList)
+            {
+                UpdateStoredReferencedAssemblyNames(loadedScriptAssemblies);
             }
 
             if (!NativeFuncs.godotsharp_dotnet_module_is_initialized().ToBool() || !Engine.IsEditorHint()) return;
@@ -392,7 +408,7 @@ namespace Godot.Bridge
                     using godot_string scriptPathNative = Marshaling.ConvertStringToNative(scriptPath);
                     NativeFuncs.godotsharp_internal_script_load(scriptPathNative, &scriptRef);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //if (OS.IsStdOutVerbose())
                     //Console.Error.WriteLine($"[.NET] Failed to load script '{scriptPath}': {e.Message}");
@@ -402,6 +418,226 @@ namespace Godot.Bridge
                     scriptRef.Dispose();
                 }
             }
+        }
+
+        private static bool TryGetProjectCsProjPath(string mainAssemblyName, [NotNullWhen(true)] out string? csprojPath)
+        {
+            csprojPath = null;
+            string projectAssemblyName = GetProjectSettingString("dotnet/project/assembly_name");
+            if (string.IsNullOrEmpty(projectAssemblyName))
+                projectAssemblyName = mainAssemblyName;
+
+            if (string.IsNullOrEmpty(projectAssemblyName))
+                return false;
+
+            string projectDirectory = GetProjectSettingString("dotnet/project/project_directory");
+            if (string.IsNullOrEmpty(projectDirectory))
+            {
+                projectDirectory = "res://";
+            }
+            else if (!projectDirectory.StartsWith("res://", StringComparison.Ordinal))
+            {
+                projectDirectory = "res://" + projectDirectory;
+            }
+
+            string candidate = Path.Combine(ProjectSettingsGlobalizePath(projectDirectory),
+                projectAssemblyName + ".csproj");
+            if (!File.Exists(candidate))
+                return false;
+
+            csprojPath = candidate;
+            return true;
+        }
+
+        private static string GetProjectSettingString(string settingName)
+        {
+            if (!ProjectSettingsHasSetting(settingName))
+                return string.Empty;
+
+            using Variant value = ProjectSettingsGetSetting(settingName);
+            return value.VariantType == Variant.Type.String ? value.AsString() : string.Empty;
+        }
+
+        private static List<string> GetReferencedAssemblyNamesFromProject(string csprojPath)
+        {
+            var remap = GetAssemblyRemap();
+            var assemblyNames = new SortedSet<string>(StringComparer.Ordinal);
+
+            XDocument projectXml;
+            try
+            {
+                var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit };
+                using var reader = XmlReader.Create(csprojPath, settings);
+                projectXml = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+            }
+            catch (Exception)
+            {
+                return assemblyNames.ToList();
+            }
+
+            foreach (var item in projectXml.Descendants().Where(static e => e.Name.LocalName == "ProjectReference"))
+            {
+                string reference = GetReferenceIdentity(item);
+                if (string.IsNullOrEmpty(reference))
+                    continue;
+
+                string name = Path.GetFileNameWithoutExtension(reference);
+                AddRemappedAssemblyNames(assemblyNames, remap, name);
+            }
+
+            foreach (var item in projectXml.Descendants().Where(static e => e.Name.LocalName == "PackageReference"))
+            {
+                string name = GetReferenceIdentity(item);
+                AddRemappedAssemblyNames(assemblyNames, remap, name);
+            }
+
+            return assemblyNames.ToList();
+        }
+
+        private static string GetReferenceIdentity(XElement item)
+        {
+            string? include = item.Attribute("Include")?.Value;
+            if (!string.IsNullOrWhiteSpace(include))
+                return include.Trim();
+
+            string? update = item.Attribute("Update")?.Value;
+            if (!string.IsNullOrWhiteSpace(update))
+                return update.Trim();
+
+            return string.Empty;
+        }
+
+        private static Dictionary<string, string[]> GetAssemblyRemap()
+        {
+            var remap = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            if (!ProjectSettingsHasSetting(AssemblyRemapSetting))
+                return remap;
+
+            using Variant value = ProjectSettingsGetSetting(AssemblyRemapSetting);
+            if (value.VariantType != Variant.Type.Dictionary)
+                return remap;
+
+            using var dictionary = value.AsGodotDictionary();
+            foreach (var entry in dictionary)
+            {
+                string key = entry.Key.AsString();
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
+
+                string[] mappedNames = entry.Value.VariantType switch
+                {
+                    Variant.Type.String => new[] { entry.Value.AsString() },
+                    Variant.Type.PackedStringArray => entry.Value.AsStringArray(),
+                    Variant.Type.Array => GetStringArray(entry.Value),
+                    _ => Array.Empty<string>(),
+                };
+
+                mappedNames = mappedNames
+                    .Where(static name => !string.IsNullOrWhiteSpace(name))
+                    .Select(static name => name.Trim())
+                    .ToArray();
+
+                if (mappedNames.Length > 0)
+                    remap[key.Trim()] = mappedNames;
+            }
+
+            return remap;
+        }
+
+        private static void AddRemappedAssemblyNames(SortedSet<string> assemblyNames,
+            Dictionary<string, string[]> remap, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            if (remap.TryGetValue(name, out string[]? mappedNames))
+            {
+                foreach (string mappedName in mappedNames)
+                    assemblyNames.Add(mappedName);
+                return;
+            }
+
+            assemblyNames.Add(name.Trim());
+        }
+
+        private static List<string> GetStoredReferencedAssemblyNames()
+        {
+            if (!ProjectSettingsHasSetting(AssemblyListSetting))
+                return new List<string>();
+
+            using Variant value = ProjectSettingsGetSetting(AssemblyListSetting);
+            string[] storedNames = value.VariantType switch
+            {
+                Variant.Type.PackedStringArray => value.AsStringArray(),
+                Variant.Type.Array => GetStringArray(value),
+                _ => Array.Empty<string>(),
+            };
+
+            return storedNames
+                .Where(static name => !string.IsNullOrWhiteSpace(name))
+                .Select(static name => name.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
+
+        private static string[] GetStringArray(Variant value)
+        {
+            using var array = value.AsGodotArray();
+            return array
+                .Select(static item => item.AsString())
+                .ToArray();
+        }
+
+        private static void UpdateStoredReferencedAssemblyNames(SortedSet<string> loadedScriptAssemblies)
+        {
+            string[] newAssemblyList = loadedScriptAssemblies.ToArray();
+            string[] oldAssemblyList = GetStoredReferencedAssemblyNames().ToArray();
+            if (oldAssemblyList.SequenceEqual(newAssemblyList, StringComparer.Ordinal))
+                return;
+
+            ProjectSettingsSetSetting(AssemblyListSetting, newAssemblyList);
+            NativeFuncs.godotsharp_project_settings_save();
+        }
+
+        private static bool ProjectSettingsHasSetting(string settingName)
+        {
+            using godot_string settingNameNative = Marshaling.ConvertStringToNative(settingName);
+            return NativeFuncs.godotsharp_project_settings_has_setting(settingNameNative).ToBool();
+        }
+
+        private static Variant ProjectSettingsGetSetting(string settingName)
+        {
+            using godot_string settingNameNative = Marshaling.ConvertStringToNative(settingName);
+            NativeFuncs.godotsharp_project_settings_get_setting(settingNameNative, out godot_variant value);
+            return Variant.CreateTakingOwnershipOfDisposableValue(value);
+        }
+
+        private static void ProjectSettingsSetSetting(string settingName, Variant value)
+        {
+            using godot_string settingNameNative = Marshaling.ConvertStringToNative(settingName);
+            NativeFuncs.godotsharp_project_settings_set_setting(settingNameNative, (godot_variant)value.NativeVar);
+        }
+
+        private static string ProjectSettingsGlobalizePath(string path)
+        {
+            using godot_string pathNative = Marshaling.ConvertStringToNative(path);
+            NativeFuncs.godotsharp_project_settings_globalize_path(pathNative, out godot_string result);
+            using (result)
+            {
+                return Marshaling.ConvertStringToManaged(result);
+            }
+        }
+
+        private static bool IsIgnoredReferencedAssembly(string assemblyName, string mainAssemblyName)
+        {
+            return string.IsNullOrEmpty(assemblyName) ||
+                assemblyName == mainAssemblyName ||
+                assemblyName.StartsWith("System", StringComparison.Ordinal) ||
+                assemblyName.StartsWith("Microsoft", StringComparison.Ordinal) ||
+                assemblyName.StartsWith("netstandard", StringComparison.Ordinal) ||
+                assemblyName == "GodotSharp" ||
+                assemblyName == "GodotSharpEditor" ||
+                assemblyName == "GodotPlugins";
         }
 
         public static string? GetSourceFilePath(string scriptPath)
@@ -481,7 +717,7 @@ namespace Godot.Bridge
                 {
                     LookupScriptForClass(type, externalScriptTypes);
                 }
-                catch (TypeLoadException e)
+                catch (TypeLoadException)
                 {
                     //if (OS.IsStdOutVerbose())
                     //onsole.Error.WriteLine($"[.NET] Failed to process type '{type}': {e.Message}");

@@ -52,6 +52,18 @@ namespace Godot.NativeInterop
 
         public static partial IntPtr godotsharp_engine_get_singleton(in godot_string p_name);
 
+        internal static partial godot_bool godotsharp_project_settings_has_setting(in godot_string p_name);
+
+        internal static partial void godotsharp_project_settings_get_setting(in godot_string p_name,
+            out godot_variant r_dest);
+
+        internal static partial void godotsharp_project_settings_set_setting(in godot_string p_name,
+            in godot_variant p_value);
+
+        internal static partial Error godotsharp_project_settings_save();
+
+        internal static partial void godotsharp_project_settings_globalize_path(in godot_string p_path,
+            out godot_string r_dest);
 
         internal static partial Error godotsharp_stack_info_vector_resize(
             ref DebuggingUtils.godot_stack_info_vector p_stack_info_vector, int p_size);

@@ -116,6 +116,8 @@ void CSharpLanguage::init() {
 #endif // DEBUG_ENABLED
 
 	GLOBAL_DEF("dotnet/project/assembly_name", "");
+	GLOBAL_DEF(PropertyInfo(Variant::DICTIONARY, "dotnet/project/assembly_remap", PROPERTY_HINT_DICTIONARY_TYPE, "String;Variant"), Dictionary());
+	GLOBAL_DEF(PropertyInfo(Variant::PACKED_STRING_ARRAY, "dotnet/project/assembly_list"), PackedStringArray());
 #ifdef TOOLS_ENABLED
 	GLOBAL_DEF("dotnet/project/solution_directory", "");
 	GLOBAL_DEF("dotnet/project/project_directory", "");
