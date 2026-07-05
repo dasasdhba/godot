@@ -3758,6 +3758,7 @@ void SceneTreeDock::_script_dropped(const String &p_file, NodePath p_to) {
 		// Check if dropped script is compatible.
 		if (n->has_meta(SceneStringName(_custom_type_script))) {
 			Ref<Script> ct_scr = PropertyUtils::get_custom_type_script(n);
+			ERR_FAIL_COND_MSG(ct_scr.is_null(), "Cannot attach script because the node's custom type script could not be loaded.");
 			if (!scr->inherits_script(ct_scr)) {
 				String custom_type_name = ct_scr->get_global_name();
 
