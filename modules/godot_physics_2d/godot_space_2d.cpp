@@ -265,11 +265,11 @@ static void _cast_motion_rest_cbk_result(const Vector2 &p_point_A, const Vector2
 	_CastMotionRestCallbackData2D *rd = static_cast<_CastMotionRestCallbackData2D *>(p_userdata);
 	Vector2 contact_rel = p_point_B - p_point_A;
 	real_t depth = contact_rel.length();
+	rd->point = p_point_B;
 	if (depth <= rd->depth || Math::is_zero_approx(depth)) {
 		return;
 	}
 
-	rd->point = p_point_B;
 	rd->normal = contact_rel / depth;
 	rd->depth = depth;
 	rd->valid = true;
@@ -304,8 +304,13 @@ bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parame
 		int shape_idx = space->intersection_query_subindex_results[i];
 
 		Transform2D col_obj_xform = col_obj->get_transform() * col_obj->get_shape_transform(shape_idx);
+		_CastMotionRestCallbackData2D closest_rest_data;
+		Vector2 closest_collision_axis;
 		//test initial overlap, does it collide if going all the way?
-		if (!GodotCollisionSolver2D::solve(shape, p_parameters.transform, p_parameters.motion, col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), nullptr, nullptr, nullptr, p_parameters.margin)) {
+		if (!GodotCollisionSolver2D::solve(shape, p_parameters.transform, p_parameters.motion,
+					col_obj->get_shape(shape_idx), col_obj_xform, Vector2(),
+					r_info ? _cast_motion_rest_cbk_result : nullptr, r_info ? &closest_rest_data : nullptr,
+					nullptr, p_parameters.margin, 0.0, r_info ? &closest_collision_axis : nullptr)) {
 			continue;
 		}
 
@@ -324,9 +329,18 @@ bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parame
 			real_t fraction = low + (hi - low) * fraction_coeff;
 
 			Vector2 sep = mnormal; //important optimization for this to work fast enough
-			bool collided = GodotCollisionSolver2D::solve(shape, p_parameters.transform, p_parameters.motion * fraction, col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), nullptr, nullptr, &sep, p_parameters.margin);
+			_CastMotionRestCallbackData2D rest_data;
+			Vector2 collision_axis;
+			bool collided = GodotCollisionSolver2D::solve(shape, p_parameters.transform, p_parameters.motion * fraction,
+					col_obj->get_shape(shape_idx), col_obj_xform, Vector2(),
+					r_info ? _cast_motion_rest_cbk_result : nullptr, r_info ? &rest_data : nullptr,
+					&sep, p_parameters.margin, 0.0, r_info ? &collision_axis : nullptr);
 
 			if (collided) {
+				if (r_info) {
+					closest_rest_data = rest_data;
+					closest_collision_axis = collision_axis;
+				}
 				hi = fraction;
 				if ((j == 0) || (low > 0.0)) { // Did it not collide before?
 					// When alternating or first iteration, use dichotomy.
@@ -358,29 +372,16 @@ bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parame
 				r_info->collider_id = col_obj->get_instance_id();
 				r_info->rid = col_obj->get_self();
 				r_info->shape = shape_idx;
-				_CastMotionRestCallbackData2D rest_data;
-				Transform2D contact_transform = p_parameters.transform;
-				contact_transform.set_origin(contact_transform.get_origin() + p_parameters.motion * hi);
-				bool collided = GodotCollisionSolver2D::solve(shape, contact_transform, Vector2(), col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, nullptr, p_parameters.margin);
-				if (collided && !rest_data.valid) {
-					// The unsafe fraction can land exactly on a zero-depth
-					// contact. Move one final search interval into the
-					// collision so the solver can produce a contact normal.
-					real_t rest_fraction = MIN(1.0, hi + (hi - low));
-					contact_transform = p_parameters.transform;
-					contact_transform.set_origin(contact_transform.get_origin() + p_parameters.motion * rest_fraction);
-					collided = GodotCollisionSolver2D::solve(shape, contact_transform, Vector2(), col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, nullptr, p_parameters.margin);
+				r_info->point = closest_rest_data.point;
+				if (closest_rest_data.valid) {
+					r_info->normal = closest_rest_data.normal;
+				} else if (!closest_collision_axis.is_zero_approx()) {
+					r_info->normal = closest_collision_axis;
 				}
-				if (collided && rest_data.valid) {
-					r_info->point = rest_data.point;
-					r_info->normal = rest_data.normal;
-					if (col_obj->get_type() == GodotCollisionObject2D::TYPE_BODY) {
-						const GodotBody2D *body = static_cast<const GodotBody2D *>(col_obj);
-						Vector2 rel_vec = rest_data.point - (body->get_transform().get_origin() + body->get_center_of_mass());
-						r_info->linear_velocity = Vector2(-body->get_angular_velocity() * rel_vec.y, body->get_angular_velocity() * rel_vec.x) + body->get_linear_velocity();
-					} else {
-						r_info->linear_velocity = Vector2();
-					}
+				if (col_obj->get_type() == GodotCollisionObject2D::TYPE_BODY) {
+					const GodotBody2D *body = static_cast<const GodotBody2D *>(col_obj);
+					Vector2 rel_vec = r_info->point - (body->get_transform().get_origin() + body->get_center_of_mass());
+					r_info->linear_velocity = Vector2(-body->get_angular_velocity() * rel_vec.y, body->get_angular_velocity() * rel_vec.x) + body->get_linear_velocity();
 				}
 			}
 		}

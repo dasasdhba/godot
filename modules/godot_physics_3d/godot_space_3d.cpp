@@ -364,23 +364,12 @@ bool GodotPhysicsDirectSpaceState3D::cast_motion(const ShapeParameters &p_parame
 		if (r_info && (best_first || (point_A.distance_squared_to(point_B) < closest_A.distance_squared_to(closest_B) && low <= best_safe))) {
 			closest_A = point_A;
 			closest_B = point_B;
+			*r_info = ShapeRestInfo();
 			r_info->collider_id = col_obj->get_instance_id();
 			r_info->rid = col_obj->get_self();
 			r_info->shape = shape_idx;
 			r_info->point = closest_B;
 			r_info->normal = (closest_A - closest_B).normalized();
-			if (r_info->normal.is_zero_approx()) {
-				// The closest points can coincide at an exact contact. Sample
-				// one final search interval inside the collision before
-				// falling back to the cast direction.
-				real_t rest_fraction = MIN(1.0, hi + (hi - low));
-				mshape.motion = xform_inv.basis.xform(p_parameters.motion * rest_fraction);
-				Vector3 rest_A;
-				Vector3 rest_B;
-				Vector3 rest_axis = motion_normal;
-				GodotCollisionSolver3D::solve_distance(&mshape, p_parameters.transform, col_obj->get_shape(shape_idx), col_obj_xform, rest_A, rest_B, aabb, &rest_axis);
-				r_info->normal = (rest_A - rest_B).normalized();
-			}
 			best_first = false;
 			if (col_obj->get_type() == GodotCollisionObject3D::TYPE_BODY) {
 				const GodotBody3D *body = static_cast<const GodotBody3D *>(col_obj);
