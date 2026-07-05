@@ -39,7 +39,6 @@ struct _CollectorCallback2D {
 	bool collided = false;
 	Vector2 normal;
 	Vector2 *sep_axis = nullptr;
-	Vector2 *collision_axis = nullptr;
 
 	_FORCE_INLINE_ void call(const Vector2 &p_point_A, const Vector2 &p_point_B) {
 		if (swap) {
@@ -47,10 +46,6 @@ struct _CollectorCallback2D {
 		} else {
 			callback(p_point_A, p_point_B, userdata);
 		}
-	}
-
-	_FORCE_INLINE_ Vector2 get_collision_axis() const {
-		return swap ? -normal : normal;
 	}
 };
 
@@ -314,10 +309,6 @@ public:
 
 		if (callback) {
 			callback->collided = true;
-			callback->normal = best_axis;
-			if (callback->collision_axis) {
-				*callback->collision_axis = callback->get_collision_axis();
-			}
 
 			if (!callback->callback) {
 				return; //only collide, no callback
@@ -361,9 +352,6 @@ public:
 		if (callback) {
 			callback->normal = best_axis;
 			_generate_contacts_from_supports(supports_A, support_count_A, supports_B, support_count_B, callback);
-			if (callback->collision_axis) {
-				*callback->collision_axis = callback->get_collision_axis();
-			}
 
 			if (callback->sep_axis && *callback->sep_axis != Vector2()) {
 				*callback->sep_axis = Vector2(); //invalidate previous axis (no test)
@@ -1115,7 +1103,7 @@ static void _collision_convex_polygon_convex_polygon(const GodotShape2D *p_a, co
 
 ////////
 
-bool sat_2d_calculate_penetration(const GodotShape2D *p_shape_A, const Transform2D &p_transform_A, const Vector2 &p_motion_A, const GodotShape2D *p_shape_B, const Transform2D &p_transform_B, const Vector2 &p_motion_B, GodotCollisionSolver2D::CallbackResult p_result_callback, void *p_userdata, bool p_swap, Vector2 *sep_axis, real_t p_margin_A, real_t p_margin_B, Vector2 *r_collision_axis) {
+bool sat_2d_calculate_penetration(const GodotShape2D *p_shape_A, const Transform2D &p_transform_A, const Vector2 &p_motion_A, const GodotShape2D *p_shape_B, const Transform2D &p_transform_B, const Vector2 &p_motion_B, GodotCollisionSolver2D::CallbackResult p_result_callback, void *p_userdata, bool p_swap, Vector2 *sep_axis, real_t p_margin_A, real_t p_margin_B) {
 	PhysicsServer2D::ShapeType type_A = p_shape_A->get_type();
 
 	ERR_FAIL_COND_V(type_A == PhysicsServer2D::SHAPE_WORLD_BOUNDARY, false);
@@ -1366,7 +1354,6 @@ bool sat_2d_calculate_penetration(const GodotShape2D *p_shape_A, const Transform
 	callback.userdata = p_userdata;
 	callback.collided = false;
 	callback.sep_axis = sep_axis;
-	callback.collision_axis = r_collision_axis;
 
 	const GodotShape2D *A = p_shape_A;
 	const GodotShape2D *B = p_shape_B;
