@@ -265,9 +265,6 @@ struct _CastMotionRestCallbackData2D {
 static void _cast_motion_rest_cbk_result(const Vector2 &p_point_A, const Vector2 &p_point_B, void *p_userdata) {
 	_CastMotionRestCallbackData2D *rd = static_cast<_CastMotionRestCallbackData2D *>(p_userdata);
 	Vector2 contact_rel = p_point_B - p_point_A;
-	if (rd->mnormal.dot(contact_rel) >= 0.0) {
-		return;
-	}
 	real_t depth = contact_rel.length();
 	if (depth > rd->depth) {
 		rd->point = p_point_B;
@@ -311,8 +308,11 @@ bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parame
 		_CastMotionRestCallbackData2D rest_data;
 		rest_data.mnormal = mnormal;
 
+		Transform2D motion_xform = p_parameters.transform;
+		motion_xform.columns[2] += p_parameters.motion;
+
 		//test initial overlap, does it collide if going all the way?
-		if (!GodotCollisionSolver2D::solve(shape, p_parameters.transform, p_parameters.motion, col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, nullptr, p_parameters.margin)) {
+		if (!GodotCollisionSolver2D::solve(shape, motion_xform, Vector2(), col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, nullptr, p_parameters.margin)) {
 			continue;
 		}
 
@@ -328,8 +328,11 @@ bool GodotPhysicsDirectSpaceState2D::cast_motion(const ShapeParameters &p_parame
 		for (int j = 0; j < 8; j++) { //steps should be customizable..
 			real_t fraction = low + (hi - low) * fraction_coeff;
 
+			Transform2D fraction_xform = p_parameters.transform;
+			fraction_xform.columns[2] += p_parameters.motion * fraction;
+
 			Vector2 sep = mnormal; //important optimization for this to work fast enough
-			bool collided = GodotCollisionSolver2D::solve(shape, p_parameters.transform, p_parameters.motion * fraction, col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, &sep, p_parameters.margin);
+			bool collided = GodotCollisionSolver2D::solve(shape, fraction_xform, Vector2(), col_obj->get_shape(shape_idx), col_obj_xform, Vector2(), _cast_motion_rest_cbk_result, &rest_data, &sep, p_parameters.margin);
 
 			if (collided) {
 				hi = fraction;
