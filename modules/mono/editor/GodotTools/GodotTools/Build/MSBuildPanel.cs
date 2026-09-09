@@ -79,6 +79,14 @@ namespace GodotTools.Build
             if (!BuildManager.BuildProjectBlocking("Debug"))
                 return; // Build failed.
 
+            ReloadProject();
+        }
+
+        public void ReloadProject()
+        {
+            if (!File.Exists(GodotSharpDirs.ProjectCsProjPath))
+                return; // No project to reload.
+
             // Notify running game for hot-reload.
             Internal.EditorDebuggerNodeReloadScripts();
 
@@ -100,17 +108,7 @@ namespace GodotTools.Build
             if (!BuildManager.BuildProjectBlocking("Debug", rebuild: true))
                 return; // Build failed.
 
-            // Notify running game for hot-reload.
-            Internal.EditorDebuggerNodeReloadScripts();
-
-            // Hot-reload in the editor.
-            GodotSharpEditor.Instance.GetNode<HotReloadAssemblyWatcher>("HotReloadAssemblyWatcher").RestartTimer();
-
-            if (Internal.IsAssembliesReloadingNeeded())
-            {
-                BuildManager.UpdateLastValidBuildDateTime();
-                Internal.ReloadAssemblies(softReload: false);
-            }
+            ReloadProject();
         }
 
         private void CleanProject()

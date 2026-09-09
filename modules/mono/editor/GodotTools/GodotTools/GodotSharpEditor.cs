@@ -46,6 +46,8 @@ namespace GodotTools
 
         private Button _bottomPanelBtn;
         private Button _toolBarBuildButton;
+        private Button _toolBarReloadButton;
+        private Button _toolBarRunWithoutBuildButton;
 
         // TODO Use WeakReference once we have proper serialization.
         private WeakRef _exportPluginWeak;
@@ -120,6 +122,8 @@ namespace GodotTools
         {
             MSBuildPanel.Open();
             _toolBarBuildButton.Show();
+            _toolBarReloadButton.Show();
+            _toolBarRunWithoutBuildButton.Show();
         }
 
         private void _MenuOptionPressed(long id)
@@ -152,6 +156,31 @@ namespace GodotTools
             }
 
             Instance.MSBuildPanel.BuildProject();
+        }
+
+        private void ReloadProjectPressed()
+        {
+            if (!File.Exists(GodotSharpDirs.ProjectCsProjPath))
+                return; // No project to reload.
+
+            Instance.MSBuildPanel.ReloadProject();
+        }
+
+        private void RunProjectWithoutBuildPressed()
+        {
+            if (!File.Exists(GodotSharpDirs.ProjectCsProjPath))
+                return; // No C# project to run.
+
+            bool previousSkipBuildBeforePlaying = SkipBuildBeforePlaying;
+            SkipBuildBeforePlaying = true;
+            try
+            {
+                Internal.EditorRunPlay();
+            }
+            finally
+            {
+                SkipBuildBeforePlaying = previousSkipBuildBeforePlaying;
+            }
         }
 
         private enum MenuOptions
@@ -555,6 +584,36 @@ namespace GodotTools
 
             EditorInterface.Singleton.GetCommandPalette().AddCommand("Build C# project".TTR(), "dotnet/build_solution", Callable.From(BuildProjectPressed), _toolBarBuildButton.Shortcut.GetAsText());
 
+            _toolBarReloadButton = new Button
+            {
+                Flat = false,
+                Icon = EditorInterface.Singleton.GetEditorTheme().GetIcon("BuildCSharp", "EditorIcons"),
+                Modulate = new Color(1.0f, 0.9f, 0.55f),
+                FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "Reload C# assemblies without building".TTR(),
+                ThemeTypeVariation = "RunBarButton",
+            };
+            _toolBarReloadButton.Pressed += ReloadProjectPressed;
+            Internal.EditorPlugin_AddControlToEditorRunBar(_toolBarReloadButton);
+            _toolBarReloadButton.GetParent().MoveChild(_toolBarReloadButton, 1);
+
+            EditorInterface.Singleton.GetCommandPalette().AddCommand("Reload C# assemblies".TTR(), "dotnet/reload_assemblies", Callable.From(ReloadProjectPressed), "");
+
+            _toolBarRunWithoutBuildButton = new Button
+            {
+                Flat = false,
+                Icon = EditorInterface.Singleton.GetEditorTheme().GetIcon("MainPlay", "EditorIcons"),
+                Modulate = new Color(1.0f, 0.9f, 0.55f),
+                FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "Run the project without building C#".TTR(),
+                ThemeTypeVariation = "RunBarButton",
+            };
+            _toolBarRunWithoutBuildButton.Pressed += RunProjectWithoutBuildPressed;
+            Internal.EditorPlugin_AddControlToEditorRunBar(_toolBarRunWithoutBuildButton);
+            _toolBarRunWithoutBuildButton.GetParent().MoveChild(_toolBarRunWithoutBuildButton, 2);
+
+            EditorInterface.Singleton.GetCommandPalette().AddCommand("Run project without building".TTR(), "editor/run_project_without_building", Callable.From(RunProjectWithoutBuildPressed), "");
+
             if (File.Exists(GodotSharpDirs.ProjectCsProjPath))
             {
                 ApplyNecessaryChangesToSolution();
@@ -563,6 +622,8 @@ namespace GodotTools
             {
                 MSBuildPanel.Close();
                 _toolBarBuildButton.Hide();
+                _toolBarReloadButton.Hide();
+                _toolBarRunWithoutBuildButton.Hide();
             }
             _menuPopup.AddItem("Create C# solution".TTR(), (int)MenuOptions.CreateSln);
 
