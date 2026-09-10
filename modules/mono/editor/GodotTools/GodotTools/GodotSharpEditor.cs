@@ -605,14 +605,15 @@ namespace GodotTools
                 Icon = EditorInterface.Singleton.GetEditorTheme().GetIcon("MainPlay", "EditorIcons"),
                 Modulate = new Color(1.0f, 0.9f, 0.55f),
                 FocusMode = Control.FocusModeEnum.None,
-                TooltipText = "Run the project without building C#".TTR(),
+                TooltipText = "Run or restart the project without building C#".TTR(),
                 ThemeTypeVariation = "RunBarButton",
             };
             _toolBarRunWithoutBuildButton.Pressed += RunProjectWithoutBuildPressed;
             Internal.EditorPlugin_AddControlToEditorRunBar(_toolBarRunWithoutBuildButton);
+            Internal.EditorRunBar_SetRunWithoutBuildButton(_toolBarRunWithoutBuildButton);
             _toolBarRunWithoutBuildButton.GetParent().MoveChild(_toolBarRunWithoutBuildButton, 2);
 
-            EditorInterface.Singleton.GetCommandPalette().AddCommand("Run project without building".TTR(), "editor/run_project_without_building", Callable.From(RunProjectWithoutBuildPressed), "");
+            EditorInterface.Singleton.GetCommandPalette().AddCommand("Run or restart project without building".TTR(), "editor/run_project_without_building", Callable.From(RunProjectWithoutBuildPressed), "");
 
             if (File.Exists(GodotSharpDirs.ProjectCsProjPath))
             {

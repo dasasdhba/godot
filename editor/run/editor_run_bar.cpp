@@ -95,6 +95,7 @@ void EditorRunBar::_notification(int p_what) {
 			}
 
 			_update_play_buttons();
+			_update_run_without_build_button();
 			profiler_autostart_indicator->set_button_icon(get_editor_theme_icon(SNAME("ProfilerAutostartWarning")));
 			pause_button->set_button_icon(get_editor_theme_icon(SNAME("Pause")));
 			stop_button->set_button_icon(get_editor_theme_icon(SNAME("Stop")));
@@ -161,6 +162,14 @@ void EditorRunBar::_update_play_buttons() {
 		active_button->set_pressed(true);
 		active_button->set_button_icon(get_editor_theme_icon(SNAME("Reload")));
 	}
+}
+
+void EditorRunBar::_update_run_without_build_button() {
+	if (!run_without_build_button) {
+		return;
+	}
+
+	run_without_build_button->set_button_icon(get_editor_theme_icon(is_playing() ? SNAME("Reload") : SNAME("MainPlay")));
 }
 
 void EditorRunBar::_movie_maker_item_pressed(int p_id) {
@@ -548,6 +557,15 @@ void EditorRunBar::update_profiler_autostart_indicator() {
 
 HBoxContainer *EditorRunBar::get_buttons_container() {
 	return main_hbox;
+}
+
+void EditorRunBar::set_run_without_build_button(Control *p_button) {
+	run_without_build_button = Object::cast_to<Button>(p_button);
+	ERR_FAIL_NULL(run_without_build_button);
+
+	_update_run_without_build_button();
+	connect("play_pressed", callable_mp(this, &EditorRunBar::_update_run_without_build_button));
+	connect("stop_pressed", callable_mp(this, &EditorRunBar::_update_run_without_build_button));
 }
 
 void EditorRunBar::_bind_methods() {

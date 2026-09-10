@@ -36,6 +36,7 @@
 
 class AcceptDialog;
 class Button;
+class Control;
 class EditorExportPreset;
 class EditorRunNative;
 class HBoxContainer;
@@ -76,6 +77,7 @@ class EditorRunBar : public MarginContainer {
 	Button *stop_button = nullptr;
 	Button *play_scene_button = nullptr;
 	Button *play_custom_scene_button = nullptr;
+	Button *run_without_build_button = nullptr;
 
 	EditorRun editor_run;
 	EditorRunNative *run_native = nullptr;
@@ -94,6 +96,7 @@ class EditorRunBar : public MarginContainer {
 
 	void _reset_play_buttons();
 	void _update_play_buttons();
+	void _update_run_without_build_button();
 
 	void _movie_maker_item_pressed(int p_id);
 	void _write_movie_toggled(bool p_enabled);
@@ -142,6 +145,7 @@ public:
 	Button *get_pause_button() { return pause_button; }
 
 	HBoxContainer *get_buttons_container();
+	void set_run_without_build_button(Control *p_button);
 
 	EditorRunBar();
 };

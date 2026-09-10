@@ -183,6 +183,10 @@ void godot_icall_Internal_EditorPlugin_AddControlToEditorRunBar(Control *p_contr
 	EditorRunBar::get_singleton()->get_buttons_container()->add_child(p_control);
 }
 
+void godot_icall_Internal_EditorRunBar_SetRunWithoutBuildButton(Control *p_control) {
+	EditorRunBar::get_singleton()->set_run_without_build_button(p_control);
+}
+
 void godot_icall_Internal_ScriptEditorDebugger_ReloadScripts() {
 	EditorDebuggerNode *ed = EditorDebuggerNode::get_singleton();
 	if (ed) {
@@ -281,6 +285,7 @@ static const void *unmanaged_callbacks[]{
 	(void *)godot_icall_Internal_EditorRunPlay,
 	(void *)godot_icall_Internal_EditorRunStop,
 	(void *)godot_icall_Internal_EditorPlugin_AddControlToEditorRunBar,
+	(void *)godot_icall_Internal_EditorRunBar_SetRunWithoutBuildButton,
 	(void *)godot_icall_Internal_ScriptEditorDebugger_ReloadScripts,
 	(void *)godot_icall_Internal_CodeCompletionRequest,
 	(void *)godot_icall_Globals_EditorScale,
