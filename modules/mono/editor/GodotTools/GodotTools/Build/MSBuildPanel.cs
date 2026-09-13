@@ -93,11 +93,12 @@ namespace GodotTools.Build
             // Hot-reload in the editor.
             GodotSharpEditor.Instance.GetNode<HotReloadAssemblyWatcher>("HotReloadAssemblyWatcher").RestartTimer();
 
-            if (Internal.IsAssembliesReloadingNeeded())
-            {
-                BuildManager.UpdateLastValidBuildDateTime();
-                Internal.ReloadAssemblies(softReload: false);
-            }
+            // Reload explicitly when requested. The native timestamp check only
+            // looks at the main project assembly, which is insufficient for
+            // multi-csproj projects where a referenced assembly may have changed
+            // without rewriting the main assembly.
+            BuildManager.UpdateLastValidBuildDateTime();
+            Internal.ReloadAssemblies(softReload: false);
         }
 
         private void RebuildProject()
