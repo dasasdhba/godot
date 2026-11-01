@@ -1725,13 +1725,13 @@ void Object::set_translation_domain(const StringName &p_domain) {
 	_translation_domain = p_domain;
 }
 
-String Object::tr(const StringName &p_message, const StringName &p_context) const {
+String Object::tr(const StringName &p_message, const Dictionary &p_args, const StringName &p_context) const {
 	if (!_can_translate || !TranslationServer::get_singleton()) {
 		return p_message;
 	}
 
 	const Ref<TranslationDomain> domain = TranslationServer::get_singleton()->get_or_add_domain(get_translation_domain());
-	return domain->translate(p_message, p_context);
+	return domain->translate(p_message, p_args, p_context);
 }
 
 String Object::tr_n(const StringName &p_message, const StringName &p_message_plural, int p_n, const StringName &p_context) const {
@@ -1908,7 +1908,7 @@ void Object::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_message_translation", "enable"), &Object::set_message_translation);
 	ClassDB::bind_method(D_METHOD("can_translate_messages"), &Object::can_translate_messages);
-	ClassDB::bind_method(D_METHOD("tr", "message", "context"), &Object::tr, DEFVAL(StringName()));
+	ClassDB::bind_method(D_METHOD("tr", "message", "args", "context"), static_cast<String (Object::*)(const StringName &, const Dictionary &, const StringName &) const>(&Object::tr), DEFVAL(Dictionary()), DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("tr_n", "message", "plural_message", "n", "context"), &Object::tr_n, DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("get_translation_domain"), &Object::get_translation_domain);
 	ClassDB::bind_method(D_METHOD("set_translation_domain", "domain"), &Object::set_translation_domain);

@@ -66,9 +66,14 @@ Current approach is very hacky and has to be familiar with the source code to us
 
 Allow AnimatedSprite2D processing in physics, which can make it safe to sync with physics.
 
-### Some minor bugfix in the upstream
+### Fluent translations
 
-Just some bugfix as I needed.
+Projects can use Fluent `.ftl` translations, including variables, terms, attributes
+and selectors, through `tr("message", { "name": "Godot" })` and `atr()`.
+Install the matching GDExtension from `misc/fluent_translation/demo/addons` and add
+FTL resources in Project Settings → Localization → Translations.
+See [Fluent setup and build instructions](misc/fluent_translation/README.md).
+Context is now the third scripting argument: `tr("message", {}, "context")`.
 
 ## Godot Engine
 

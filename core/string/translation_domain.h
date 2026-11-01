@@ -68,7 +68,7 @@ protected:
 
 public:
 	// Methods in this section are not intended for scripting.
-	StringName get_message_from_translations(const String &p_locale, const StringName &p_message, const StringName &p_context) const;
+	StringName get_message_from_translations(const String &p_locale, const StringName &p_message, const Dictionary &p_args, const StringName &p_context) const;
 	StringName get_message_from_translations(const String &p_locale, const StringName &p_message, const StringName &p_message_plural, int p_n, const StringName &p_context) const;
 	PackedStringArray get_loaded_locales() const;
 
@@ -90,7 +90,8 @@ public:
 	HashSet<Ref<Translation>> find_translations(const String &p_locale, bool p_exact) const;
 	bool has_translation_for_locale(const String &p_locale, bool p_exact) const;
 
-	StringName translate(const StringName &p_message, const StringName &p_context) const;
+	StringName translate(const StringName &p_message, const Dictionary &p_args = Dictionary(), const StringName &p_context = "") const;
+	StringName translate(const StringName &p_message, const StringName &p_context) const { return translate(p_message, Dictionary(), p_context); }
 	StringName translate_plural(const StringName &p_message, const StringName &p_message_plural, int p_n, const StringName &p_context) const;
 
 	String get_locale_override() const;

@@ -831,8 +831,11 @@ public:
 	virtual void set_translation_domain(const StringName &p_domain) override;
 	void set_translation_domain_inherited();
 
-	_FORCE_INLINE_ String atr(const String &p_message, const StringName &p_context = "") const {
-		return can_auto_translate() ? tr(p_message, _get_translation_context_with_override(p_context)) : p_message;
+	_FORCE_INLINE_ String atr(const String &p_message, const Dictionary &p_args = Dictionary(), const StringName &p_context = "") const {
+		return can_auto_translate() ? tr(p_message, p_args, _get_translation_context_with_override(p_context)) : p_message;
+	}
+	_FORCE_INLINE_ String atr(const String &p_message, const StringName &p_context) const {
+		return atr(p_message, Dictionary(), p_context);
 	}
 	_FORCE_INLINE_ String atr_n(const String &p_message, const StringName &p_message_plural, int p_n, const StringName &p_context = "") const {
 		if (can_auto_translate()) {

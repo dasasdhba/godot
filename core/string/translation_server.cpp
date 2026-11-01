@@ -555,8 +555,8 @@ void TranslationServer::clear() {
 	main_domain->clear();
 }
 
-StringName TranslationServer::translate(const StringName &p_message, const StringName &p_context) const {
-	return main_domain->translate(p_message, p_context);
+StringName TranslationServer::translate(const StringName &p_message, const Dictionary &p_args, const StringName &p_context) const {
+	return main_domain->translate(p_message, p_args, p_context);
 }
 
 StringName TranslationServer::translate_plural(const StringName &p_message, const StringName &p_message_plural, int p_n, const StringName &p_context) const {
@@ -721,7 +721,7 @@ void TranslationServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_locale_name", "locale"), &TranslationServer::get_locale_name);
 	ClassDB::bind_method(D_METHOD("get_plural_rules", "locale"), &TranslationServer::get_plural_rules);
 
-	ClassDB::bind_method(D_METHOD("translate", "message", "context"), &TranslationServer::translate, DEFVAL(StringName()));
+	ClassDB::bind_method(D_METHOD("translate", "message", "args", "context"), static_cast<StringName (TranslationServer::*)(const StringName &, const Dictionary &, const StringName &) const>(&TranslationServer::translate), DEFVAL(Dictionary()), DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("translate_plural", "message", "plural_message", "n", "context"), &TranslationServer::translate_plural, DEFVAL(StringName()));
 
 	ClassDB::bind_method(D_METHOD("add_translation", "translation"), &TranslationServer::add_translation);

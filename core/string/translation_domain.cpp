@@ -199,14 +199,14 @@ bool TranslationDomain::_is_placeholder(const String &p_message, int p_index) co
 					p_message[p_index + 1] == 'o' || p_message[p_index + 1] == 'x' || p_message[p_index + 1] == 'X' || p_message[p_index + 1] == 'f');
 }
 
-StringName TranslationDomain::get_message_from_translations(const String &p_locale, const StringName &p_message, const StringName &p_context) const {
+StringName TranslationDomain::get_message_from_translations(const String &p_locale, const StringName &p_message, const Dictionary &p_args, const StringName &p_context) const {
 	StringName res;
 	int best_score = 0;
 
 	for (const Ref<Translation> &E : translations) {
 		int score = TranslationServer::get_singleton()->compare_locales(p_locale, E->get_locale());
 		if (score > 0 && score >= best_score) {
-			const StringName r = E->get_message(p_message, p_context);
+			const StringName r = E->get_message(p_message, p_args, p_context);
 			if (!r) {
 				continue;
 			}
@@ -349,17 +349,17 @@ TypedArray<Translation> TranslationDomain::find_translations_bind(const String &
 	return res;
 }
 
-StringName TranslationDomain::translate(const StringName &p_message, const StringName &p_context) const {
+StringName TranslationDomain::translate(const StringName &p_message, const Dictionary &p_args, const StringName &p_context) const {
 	if (!enabled) {
 		return p_message;
 	}
 
 	const String &locale = locale_override.is_empty() ? TranslationServer::get_singleton()->get_locale() : locale_override;
-	StringName res = get_message_from_translations(locale, p_message, p_context);
+	StringName res = get_message_from_translations(locale, p_message, p_args, p_context);
 
 	const String &fallback = TranslationServer::get_singleton()->get_fallback_locale();
 	if (!res && fallback.length() >= 2) {
-		res = get_message_from_translations(fallback, p_message, p_context);
+		res = get_message_from_translations(fallback, p_message, p_args, p_context);
 	}
 
 	if (!res) {
@@ -516,7 +516,7 @@ void TranslationDomain::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("has_translation_for_locale", "locale", "exact"), &TranslationDomain::has_translation_for_locale);
 	ClassDB::bind_method(D_METHOD("has_translation", "translation"), &TranslationDomain::has_translation);
 	ClassDB::bind_method(D_METHOD("find_translations", "locale", "exact"), &TranslationDomain::find_translations_bind);
-	ClassDB::bind_method(D_METHOD("translate", "message", "context"), &TranslationDomain::translate, DEFVAL(StringName()));
+	ClassDB::bind_method(D_METHOD("translate", "message", "args", "context"), static_cast<StringName (TranslationDomain::*)(const StringName &, const Dictionary &, const StringName &) const>(&TranslationDomain::translate), DEFVAL(Dictionary()), DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("translate_plural", "message", "message_plural", "n", "context"), &TranslationDomain::translate_plural, DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("get_locale_override"), &TranslationDomain::get_locale_override);
 	ClassDB::bind_method(D_METHOD("set_locale_override", "locale"), &TranslationDomain::set_locale_override);

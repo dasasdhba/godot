@@ -804,8 +804,6 @@ Error Main::test_setup() {
 	if (!locale.is_empty()) {
 		translation_server->set_locale(locale);
 	}
-	translation_server->load_project_translations(translation_server->get_main_domain());
-	ResourceLoader::load_translation_remaps(); //load remaps for resources
 
 	message_queue = memnew(MessageQueue);
 
@@ -832,6 +830,10 @@ Error Main::test_setup() {
 
 	initialize_modules(MODULE_INITIALIZATION_LEVEL_SCENE);
 	GDExtensionManager::get_singleton()->initialize_extensions(GDExtension::INITIALIZATION_LEVEL_SCENE);
+
+	// Translation resources can be provided by scene-level GDExtensions.
+	translation_server->load_project_translations(translation_server->get_main_domain());
+	ResourceLoader::load_translation_remaps();
 
 #ifdef TOOLS_ENABLED
 	ClassDB::set_current_api(ClassDB::API_EDITOR);
@@ -3684,8 +3686,6 @@ Error Main::setup2(bool p_show_boot_logo) {
 		if (!locale.is_empty()) {
 			translation_server->set_locale(locale);
 		}
-		translation_server->load_project_translations(translation_server->get_main_domain());
-		ResourceLoader::load_translation_remaps(); //load remaps for resources
 
 		OS::get_singleton()->benchmark_end_measure("Startup", "Translations and Remaps");
 	}
@@ -3787,6 +3787,10 @@ Error Main::setup2(bool p_show_boot_logo) {
 
 		initialize_modules(MODULE_INITIALIZATION_LEVEL_SCENE);
 		GDExtensionManager::get_singleton()->initialize_extensions(GDExtension::INITIALIZATION_LEVEL_SCENE);
+
+		// Translation resources can be provided by scene-level GDExtensions.
+		translation_server->load_project_translations(translation_server->get_main_domain());
+		ResourceLoader::load_translation_remaps();
 
 		OS::get_singleton()->benchmark_end_measure("Scene", "Modules and Extensions");
 

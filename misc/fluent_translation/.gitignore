@@ -1,0 +1,4 @@
+rust/target/
+demo/.godot/
+demo/**/*.dll
+demo/*.pck

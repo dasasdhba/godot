@@ -161,9 +161,9 @@ void Translation::add_plural_message(const StringName &p_src_text, const Vector<
 	translation_map[{ p_context, p_src_text }] = msgstrs;
 }
 
-StringName Translation::get_message(const StringName &p_src_text, const StringName &p_context) const {
+StringName Translation::get_message(const StringName &p_src_text, const Dictionary &p_args, const StringName &p_context) const {
 	StringName ret;
-	if (GDVIRTUAL_CALL(_get_message, p_src_text, p_context, ret)) {
+	if (GDVIRTUAL_CALL(_get_message, p_src_text, p_args, p_context, ret)) {
 		return ret;
 	}
 
@@ -260,7 +260,7 @@ void Translation::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_locale"), &Translation::get_locale);
 	ClassDB::bind_method(D_METHOD("add_message", "src_message", "xlated_message", "context"), &Translation::add_message, DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("add_plural_message", "src_message", "xlated_messages", "context"), &Translation::add_plural_message, DEFVAL(StringName()));
-	ClassDB::bind_method(D_METHOD("get_message", "src_message", "context"), &Translation::get_message, DEFVAL(StringName()));
+	ClassDB::bind_method(D_METHOD("get_message", "src_message", "args", "context"), static_cast<StringName (Translation::*)(const StringName &, const Dictionary &, const StringName &) const>(&Translation::get_message), DEFVAL(Dictionary()), DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("get_plural_message", "src_message", "src_plural_message", "n", "context"), &Translation::get_plural_message, DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("erase_message", "src_message", "context"), &Translation::erase_message, DEFVAL(StringName()));
 	ClassDB::bind_method(D_METHOD("get_message_list"), &Translation::_get_message_list);
@@ -272,7 +272,7 @@ void Translation::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_plural_rules_override"), &Translation::get_plural_rules_override);
 
 	GDVIRTUAL_BIND(_get_plural_message, "src_message", "src_plural_message", "n", "context");
-	GDVIRTUAL_BIND(_get_message, "src_message", "context");
+	GDVIRTUAL_BIND(_get_message, "src_message", "args", "context");
 
 	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "messages", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NO_EDITOR | PROPERTY_USAGE_INTERNAL), "_set_messages", "_get_messages");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "locale", PROPERTY_HINT_LOCALE_ID), "set_locale", "get_locale");

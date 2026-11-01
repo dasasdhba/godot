@@ -1,0 +1,80 @@
+use std::fmt::Display;
+use std::path::PathBuf;
+
+use godot::classes::file_access::ModeFlags;
+use godot::classes::{DirAccess, FileAccess, RegExMatch};
+use godot::global::error_string;
+use godot::global::Error as GdErr;
+use godot::prelude::*;
+
+pub fn get_files_recursive(path: GString) -> Vec<GString> {
+    let da = DirAccess::open(&path);
+    if da.is_none() || DirAccess::get_open_error() != GdErr::OK {
+        godot_error!(
+            "Unable to recurse through folder {}: {}",
+            path,
+            error_string(DirAccess::get_open_error().ord() as i64)
+        );
+        return vec![];
+    }
+    let mut da = da.unwrap();
+    if da.list_dir_begin() != GdErr::OK {
+        return vec![];
+    }
+
+    let mut files = vec![];
+    let mut file_name = da.get_next();
+    while !file_name.is_empty() {
+        if da.current_is_dir() {
+            if &file_name.to_string() != ".godot" {
+                // TODO: use GString.path_join() once available (upstream issue)
+                let child_path = GString::from(&format!("{}/{}", path, file_name));
+                let mut recurse = get_files_recursive(child_path);
+                files.append(&mut recurse);
+            }
+        } else {
+            files.push(file_name);
+        }
+        file_name = da.get_next();
+    }
+    files
+}
+
+pub fn create_or_open_file_for_read_write(path: &GString) -> Result<Gd<FileAccess>, GdErr> {
+    let dir_only = match PathBuf::from(path.clone().to_string()).parent() {
+        Some(dir) => dir.to_str().unwrap_or_default().into(),
+        None => String::new(),
+    };
+    let dir_err = DirAccess::make_dir_recursive_absolute(&dir_only);
+    if dir_err != GdErr::OK {
+        return Err(dir_err);
+    }
+
+    let fa = FileAccess::open(path, ModeFlags::READ_WRITE);
+    if fa.is_none() || FileAccess::get_open_error() != GdErr::OK {
+        if FileAccess::get_open_error() == GdErr::ERR_FILE_NOT_FOUND {
+            let fa = FileAccess::open(path, ModeFlags::WRITE_READ);
+            if fa.is_some() && FileAccess::get_open_error() == GdErr::OK {
+                return Ok(fa.unwrap());
+            }
+        }
+        return Err(FileAccess::get_open_error());
+    }
+    Ok(fa.unwrap())
+}
+
+pub fn get_single_regex_match<T: Display>(regex_match: Gd<RegExMatch>, err_source: T) -> GString {
+    // Ensure there is only one capture group.
+    if regex_match.get_group_count() > 1 {
+        godot_warn!(
+            "{} is set to a RegEx with {} capture groups. Only one should be capturing, the rest should be (?:) non-capturing.\nUsing last capture group as a fallback.",
+            err_source, regex_match.get_group_count()
+        );
+    }
+
+    // Get the last capture group's value.
+    regex_match
+        .get_string_ex()
+        .name(&regex_match.get_group_count().to_variant())
+        .done()
+}

@@ -33,8 +33,59 @@
 TEST_FORCE_LINK(test_translation_server)
 
 #include "core/string/translation_server.h"
+#include "scene/main/node.h"
 
 namespace TestTranslationServer {
+
+// Models a formatter implemented by a Translation GDExtension.
+class ArgumentTranslation : public Translation {
+public:
+	StringName get_message(const StringName &p_message, const Dictionary &p_args, const StringName &p_context) const override {
+		if (p_message != StringName("test-fluent-message") || !p_args.has("name")) {
+			return StringName();
+		}
+		return String(p_context) + ":" + String(p_args["name"]);
+	}
+};
+
+TEST_CASE("[TranslationServer] Translation arguments through domains and objects") {
+	TranslationServer *ts = TranslationServer::get_singleton();
+	Ref<TranslationDomain> td = ts->get_or_add_domain("godot.test.fluent");
+	Ref<ArgumentTranslation> translation = memnew(ArgumentTranslation);
+	translation->set_locale("en");
+	td->add_translation(translation);
+	td->set_locale_override("en");
+	Dictionary args;
+	args["name"] = "Godot";
+
+	CHECK(td->translate("test-fluent-message", args, "title") == "title:Godot");
+	// Use the actual configured fallback locale, independent of the test host.
+	translation->set_locale(ts->get_fallback_locale());
+	td->set_locale_override("ja");
+	CHECK(td->translate("test-fluent-message", args, "fallback") == "fallback:Godot");
+	CHECK(td->translate("missing", args) == "missing");
+
+	Node *node = memnew(Node);
+	node->set_translation_domain("godot.test.fluent");
+	CHECK(node->tr("test-fluent-message", args, "title") == "title:Godot");
+	CHECK(node->atr("test-fluent-message", args, "title") == "title:Godot");
+	node->set_auto_translate_mode(Node::AUTO_TRANSLATE_MODE_DISABLED);
+	CHECK(node->atr("test-fluent-message", args, "title") == "test-fluent-message");
+	node->set_message_translation(false);
+	CHECK(node->tr("test-fluent-message", args, "title") == "test-fluent-message");
+	memdelete(node);
+
+	Ref<TranslationDomain> main = ts->get_main_domain();
+	const String previous_override = main->get_locale_override();
+	main->set_locale_override(translation->get_locale());
+	main->add_translation(translation);
+	CHECK(ts->translate("test-fluent-message", args, "server") == "server:Godot");
+	main->remove_translation(translation);
+	main->set_locale_override(previous_override);
+	td->set_enabled(false);
+	CHECK(td->translate("test-fluent-message", args) == "test-fluent-message");
+	ts->remove_domain("godot.test.fluent");
+}
 
 TEST_CASE("[TranslationServer] Translation operations") {
 	Ref<TranslationDomain> td = TranslationServer::get_singleton()->get_or_add_domain("godot.test");

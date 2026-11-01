@@ -91,8 +91,10 @@
 		<method name="translate" qualifiers="const">
 			<return type="StringName" />
 			<param index="0" name="message" type="StringName" />
-			<param index="1" name="context" type="StringName" default="&amp;&quot;&quot;" />
+			<param index="1" name="args" type="Dictionary" default="{}" />
+			<param index="2" name="context" type="StringName" default="&amp;&quot;&quot;" />
 			<description>
+				The optional [param args] supplies variables to translations that support them, such as Fluent. The [param context] selects a Fluent message attribute.
 				Returns the current locale's translation for the given message and context.
 			</description>
 		</method>

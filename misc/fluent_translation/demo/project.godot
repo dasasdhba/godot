@@ -1,0 +1,12 @@
+config_version=5
+
+[application]
+config/name="Godot Moon Fluent verification"
+run/main_scene="res://smoke.tscn"
+
+[internationalization]
+locale/fallback="en"
+locale/translations=PackedStringArray("res://messages.en.ftl", "res://messages.zh_CN.ftl")
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

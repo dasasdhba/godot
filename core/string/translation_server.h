@@ -140,7 +140,8 @@ public:
 	void add_translation(const Ref<Translation> &p_translation);
 	void remove_translation(const Ref<Translation> &p_translation);
 
-	StringName translate(const StringName &p_message, const StringName &p_context = "") const;
+	StringName translate(const StringName &p_message, const Dictionary &p_args = Dictionary(), const StringName &p_context = "") const;
+	StringName translate(const StringName &p_message, const StringName &p_context) const { return translate(p_message, Dictionary(), p_context); }
 	StringName translate_plural(const StringName &p_message, const StringName &p_message_plural, int p_n, const StringName &p_context = "") const;
 
 	StringName pseudolocalize(const StringName &p_message) const;

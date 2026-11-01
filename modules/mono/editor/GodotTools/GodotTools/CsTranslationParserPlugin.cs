@@ -35,6 +35,8 @@ public partial class CsTranslationParserPlugin : EditorTranslationParserPlugin
     private const string TranslationPluralMethod = "TranslatePlural";
     private const string TranslationClass = "Godot.GodotObject";
     private const string TranslationMethodTr = "Tr";
+    private const string TranslationMethodAtr = "Atr";
+    private const string TranslationMethodAtrN = "AtrN";
     private const string TranslationMethodTrN = "TrN";
     private static readonly string[] _configurations = ["Debug", "Release"];
     private static readonly string[] _targetPlatforms = ["windows", "linuxbsd", "macos", "android", "ios", "web"];
@@ -233,7 +235,7 @@ public partial class CsTranslationParserPlugin : EditorTranslationParserPlugin
                 AddPluralMsg(invocation.ArgumentList.Arguments, semanticModel, commentText);
             }
 
-            if (methodSymbol.Name is TranslationMethodTr or TranslationMethodTrN
+            if (methodSymbol.Name is TranslationMethodTr or TranslationMethodTrN or TranslationMethodAtr or TranslationMethodAtrN
                 && methodSymbol.MethodKind == MethodKind.Ordinary)
             {
                 var receiverType = methodSymbol.ReceiverType ?? methodSymbol.ContainingType;
@@ -244,7 +246,7 @@ public partial class CsTranslationParserPlugin : EditorTranslationParserPlugin
                     {
                         continue;
                     }
-                    if (methodSymbol.Name == TranslationMethodTr)
+                    if (methodSymbol.Name is TranslationMethodTr or TranslationMethodAtr)
                     {
                         AddMsg(invocation.ArgumentList.Arguments, semanticModel, commentText);
                     }
@@ -288,37 +290,39 @@ public partial class CsTranslationParserPlugin : EditorTranslationParserPlugin
 
     private void AddMsg(SeparatedSyntaxList<ArgumentSyntax> arguments, SemanticModel semanticModel, string comment)
     {
-        switch (arguments.Count)
+        ArgumentSyntax? messageArgument = null;
+        ArgumentSyntax? contextArgument = null;
+        for (int i = 0; i < arguments.Count; i++)
         {
-            case 1:
+            string? name = arguments[i].NameColon?.Name.Identifier.ValueText;
+            if (name == "message" || (name == null && i == 0))
             {
-                var argExpr = arguments[0].Expression;
-                var constantValue = semanticModel.GetConstantValue(argExpr);
-
-                if (constantValue is { HasValue: true, Value: string message })
-                {
-                    _ret.Add([message, "", "", comment]);
-                }
-
-                break;
+                messageArgument = arguments[i];
             }
-            case 2:
+            else if (name == "context" || (name == null && i == 2))
             {
-                var msgExpr = arguments[0].Expression;
-                var ctxExpr = arguments[1].Expression;
-
-                var msgValue = semanticModel.GetConstantValue(msgExpr);
-                var ctxValue = semanticModel.GetConstantValue(ctxExpr);
-
-                if (msgValue is { HasValue: true, Value: string message } &&
-                    ctxValue is { HasValue: true, Value: string context })
-                {
-                    _ret.Add([message, context, "", comment]);
-                }
-
-                break;
+                contextArgument = arguments[i];
             }
+            // Fluent's args dictionary can contain runtime values; it is not context.
         }
+
+        if (messageArgument == null ||
+            semanticModel.GetConstantValue(messageArgument.Expression) is not { HasValue: true, Value: string message })
+        {
+            return;
+        }
+
+        string context = "";
+        if (contextArgument != null)
+        {
+            if (semanticModel.GetConstantValue(contextArgument.Expression) is not { HasValue: true, Value: string constantContext })
+            {
+                return;
+            }
+            context = constantContext;
+        }
+
+        _ret.Add([message, context, "", comment]);
     }
 
     private void AddPluralMsg(SeparatedSyntaxList<ArgumentSyntax> arguments, SemanticModel semanticModel, string comment)
