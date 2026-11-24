@@ -34,8 +34,23 @@
 #include "core/config/project_settings.h"
 #include "core/object/class_db.h"
 #include "core/variant/typed_array.h"
+#include "scene/main/canvas_item.h"
 
 PhysicsServer2D *PhysicsServer2D::singleton = nullptr;
+
+PhysicsDirectSpaceState2D::QueryTransformDerivation::QueryTransformDerivation(ObjectID p_canvas_item) {
+	if (p_canvas_item.is_null()) {
+		return;
+	}
+	const CanvasItem *item = Object::cast_to<CanvasItem>(ObjectDB::get_instance(p_canvas_item));
+	has_canvas_item = item != nullptr;
+	const CanvasItem *parent = item ? item->get_parent_item() : nullptr;
+	if (parent) {
+		parent_global = parent->get_global_transform();
+		parent_inverse = parent_global.affine_inverse();
+		enabled = true;
+	}
+}
 
 void PhysicsDirectBodyState2D::integrate_forces() {
 	real_t step = get_step();
@@ -191,7 +206,19 @@ TypedArray<RID> PhysicsRayQueryParameters2D::get_exclude() const {
 	return ret;
 }
 
+void PhysicsRayQueryParameters2D::set_canvas_item(CanvasItem *p_canvas_item) {
+	parameters.canvas_item_id = p_canvas_item ? p_canvas_item->get_instance_id() : ObjectID();
+}
+
+CanvasItem *PhysicsRayQueryParameters2D::get_canvas_item() const {
+	return Object::cast_to<CanvasItem>(ObjectDB::get_instance(parameters.canvas_item_id));
+}
+
 void PhysicsRayQueryParameters2D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_canvas_item", "canvas_item"), &PhysicsRayQueryParameters2D::set_canvas_item);
+	ClassDB::bind_method(D_METHOD("get_canvas_item"), &PhysicsRayQueryParameters2D::get_canvas_item);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "canvas_item", PROPERTY_HINT_NODE_TYPE, "CanvasItem"), "set_canvas_item", "get_canvas_item");
+
 	ClassDB::bind_static_method("PhysicsRayQueryParameters2D", D_METHOD("create", "from", "to", "collision_mask", "exclude"), &PhysicsRayQueryParameters2D::create, DEFVAL(UINT32_MAX), DEFVAL(TypedArray<RID>()));
 
 	ClassDB::bind_method(D_METHOD("set_from", "from"), &PhysicsRayQueryParameters2D::set_from);
@@ -243,7 +270,19 @@ TypedArray<RID> PhysicsPointQueryParameters2D::get_exclude() const {
 	return ret;
 }
 
+void PhysicsPointQueryParameters2D::set_canvas_item(CanvasItem *p_canvas_item) {
+	parameters.canvas_item_id = p_canvas_item ? p_canvas_item->get_instance_id() : ObjectID();
+}
+
+CanvasItem *PhysicsPointQueryParameters2D::get_canvas_item() const {
+	return Object::cast_to<CanvasItem>(ObjectDB::get_instance(parameters.canvas_item_id));
+}
+
 void PhysicsPointQueryParameters2D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_canvas_item", "canvas_item"), &PhysicsPointQueryParameters2D::set_canvas_item);
+	ClassDB::bind_method(D_METHOD("get_canvas_item"), &PhysicsPointQueryParameters2D::get_canvas_item);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "canvas_item", PROPERTY_HINT_NODE_TYPE, "CanvasItem"), "set_canvas_item", "get_canvas_item");
+
 	ClassDB::bind_method(D_METHOD("set_position", "position"), &PhysicsPointQueryParameters2D::set_position);
 	ClassDB::bind_method(D_METHOD("get_position"), &PhysicsPointQueryParameters2D::get_position);
 
@@ -302,7 +341,19 @@ TypedArray<RID> PhysicsShapeQueryParameters2D::get_exclude() const {
 	return ret;
 }
 
+void PhysicsShapeQueryParameters2D::set_canvas_item(CanvasItem *p_canvas_item) {
+	parameters.canvas_item_id = p_canvas_item ? p_canvas_item->get_instance_id() : ObjectID();
+}
+
+CanvasItem *PhysicsShapeQueryParameters2D::get_canvas_item() const {
+	return Object::cast_to<CanvasItem>(ObjectDB::get_instance(parameters.canvas_item_id));
+}
+
 void PhysicsShapeQueryParameters2D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_canvas_item", "canvas_item"), &PhysicsShapeQueryParameters2D::set_canvas_item);
+	ClassDB::bind_method(D_METHOD("get_canvas_item"), &PhysicsShapeQueryParameters2D::get_canvas_item);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "canvas_item", PROPERTY_HINT_NODE_TYPE, "CanvasItem"), "set_canvas_item", "get_canvas_item");
+
 	ClassDB::bind_method(D_METHOD("set_shape", "shape"), &PhysicsShapeQueryParameters2D::set_shape);
 	ClassDB::bind_method(D_METHOD("get_shape"), &PhysicsShapeQueryParameters2D::get_shape);
 

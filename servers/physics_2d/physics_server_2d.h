@@ -116,6 +116,7 @@ public:
 	PhysicsDirectBodyState2D();
 };
 
+class CanvasItem;
 class PhysicsRayQueryParameters2D;
 class PhysicsPointQueryParameters2D;
 class PhysicsShapeQueryParameters2D;
@@ -138,6 +139,21 @@ protected:
 	static void _bind_methods();
 
 public:
+	struct QueryTransformDerivation {
+		Transform2D parent_global;
+		Transform2D parent_inverse;
+		bool enabled = false;
+		bool has_canvas_item = false;
+
+		explicit QueryTransformDerivation(ObjectID p_canvas_item);
+		Transform2D derive_transform(const Transform2D &p_transform) const {
+			return enabled ? parent_global * (parent_inverse * p_transform) : p_transform;
+		}
+		Vector2 derive_position(const Vector2 &p_position) const {
+			return enabled ? parent_global.xform(parent_inverse.xform(p_position)) : p_position;
+		}
+	};
+
 	struct RayParameters {
 		Vector2 from;
 		Vector2 to;
@@ -148,6 +164,8 @@ public:
 		bool collide_with_areas = false;
 
 		bool hit_from_inside = false;
+
+		ObjectID canvas_item_id;
 	};
 
 	struct RayResult {
@@ -178,6 +196,8 @@ public:
 		bool collide_with_areas = false;
 
 		bool pick_point = false;
+
+		ObjectID canvas_item_id;
 	};
 
 	virtual int intersect_point(const PointParameters &p_parameters, ShapeResult *r_results, int p_result_max) = 0;
@@ -192,6 +212,8 @@ public:
 
 		bool collide_with_bodies = true;
 		bool collide_with_areas = false;
+
+		ObjectID canvas_item_id;
 	};
 
 	struct ShapeRestInfo {
@@ -649,6 +671,9 @@ public:
 	static Ref<PhysicsRayQueryParameters2D> create(Vector2 p_from, Vector2 p_to, uint32_t p_mask, const TypedArray<RID> &p_exclude);
 	const PhysicsDirectSpaceState2D::RayParameters &get_parameters() const { return parameters; }
 
+	void set_canvas_item(CanvasItem *p_canvas_item);
+	CanvasItem *get_canvas_item() const;
+
 	void set_from(const Vector2 &p_from) { parameters.from = p_from; }
 	const Vector2 &get_from() const { return parameters.from; }
 
@@ -682,6 +707,9 @@ protected:
 public:
 	const PhysicsDirectSpaceState2D::PointParameters &get_parameters() const { return parameters; }
 
+	void set_canvas_item(CanvasItem *p_canvas_item);
+	CanvasItem *get_canvas_item() const;
+
 	void set_position(const Vector2 &p_position) { parameters.position = p_position; }
 	const Vector2 &get_position() const { return parameters.position; }
 
@@ -713,6 +741,9 @@ protected:
 
 public:
 	const PhysicsDirectSpaceState2D::ShapeParameters &get_parameters() const { return parameters; }
+
+	void set_canvas_item(CanvasItem *p_canvas_item);
+	CanvasItem *get_canvas_item() const;
 
 	void set_shape(const Ref<Resource> &p_shape_ref);
 	Ref<Resource> get_shape() const { return shape_ref; }

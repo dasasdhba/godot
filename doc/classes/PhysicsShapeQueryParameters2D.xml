@@ -9,6 +9,9 @@
 	<tutorials>
 	</tutorials>
 	<members>
+		<member name="canvas_item" type="CanvasItem" setter="set_canvas_item" getter="get_canvas_item">
+			If assigned, each query pose is passed through [method CanvasItem.get_derived_global_transform] before testing. [member motion] is only used by [method PhysicsDirectSpaceState2D.cast_motion], which tests discrete poses with GodotPhysics2D. Obstacles between sampled poses may be missed.
+		</member>
 		<member name="collide_with_areas" type="bool" setter="set_collide_with_areas" getter="is_collide_with_areas_enabled" default="false">
 			If [code]true[/code], the query will take [Area2D]s into account.
 		</member>

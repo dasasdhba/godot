@@ -55,12 +55,19 @@
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
-bool JoltPhysicsDirectSpaceState3D::_cast_motion_impl(const JPH::Shape &p_jolt_shape, const Transform3D &p_transform_com, const Vector3 &p_scale, const Vector3 &p_motion, bool p_use_edge_removal, bool p_ignore_overlaps, const JPH::CollideShapeSettings &p_settings, const JPH::BroadPhaseLayerFilter &p_broad_phase_layer_filter, const JPH::ObjectLayerFilter &p_object_layer_filter, const JPH::BodyFilter &p_body_filter, const JPH::ShapeFilter &p_shape_filter, real_t &r_closest_safe, real_t &r_closest_unsafe) const {
+bool JoltPhysicsDirectSpaceState3D::_cast_motion_impl(const JPH::Shape &p_jolt_shape, const Transform3D &p_transform_com, const Vector3 &p_scale, const Vector3 &p_motion, bool p_use_edge_removal, bool p_ignore_overlaps, const JPH::CollideShapeSettings &p_settings, const JPH::BroadPhaseLayerFilter &p_broad_phase_layer_filter, const JPH::ObjectLayerFilter &p_object_layer_filter, const JPH::BodyFilter &p_body_filter, const JPH::ShapeFilter &p_shape_filter, real_t &r_closest_safe, real_t &r_closest_unsafe, const ShapeParameters *p_query, const GlobalTransformDerivation3D *p_derivation) const {
 	r_closest_safe = 1.0f;
 	r_closest_unsafe = 1.0f;
 
 	ERR_FAIL_COND_V_MSG(p_jolt_shape.GetType() != JPH::EShapeType::Convex, false, "Shape-casting with non-convex shapes is not supported.");
 
+	const Vector3 center_of_mass_offset = p_query ? p_transform_com.basis.xform(to_godot(p_jolt_shape.GetCenterOfMass())) : Vector3();
+	auto sample_transform = [&](real_t p_fraction) {
+		Transform3D sample = p_transform_com;
+		sample.origin = p_query->get_transform_at_fraction(p_fraction, *p_derivation).origin + center_of_mass_offset;
+		return sample;
+	};
+	const Transform3D full_end = p_query ? sample_transform(1.0) : Transform3D();
 	const float motion_length = (float)p_motion.length();
 
 	if (p_ignore_overlaps && motion_length == 0.0f) {
@@ -74,8 +81,15 @@ bool JoltPhysicsDirectSpaceState3D::_cast_motion_impl(const JPH::Shape &p_jolt_s
 
 	JPH::AABox aabb = p_jolt_shape.GetWorldSpaceBounds(transform_com, scale);
 	JPH::AABox aabb_translated = aabb;
-	aabb_translated.Translate(motion);
+	if (p_query) {
+		aabb_translated = p_jolt_shape.GetWorldSpaceBounds(to_jolt_r(full_end), scale);
+	} else {
+		aabb_translated.Translate(motion);
+	}
 	aabb.Encapsulate(aabb_translated);
+	if (p_query && p_settings.mMaxSeparationDistance > 0.0f) {
+		aabb.ExpandBy(JPH::Vec3::sReplicate(p_settings.mMaxSeparationDistance));
+	}
 
 	JoltQueryCollectorAnyMulti<JPH::CollideShapeBodyCollector, 1024> aabb_collector;
 	space->get_broad_phase_query().CollideAABox(aabb, aabb_collector, p_broad_phase_layer_filter, p_object_layer_filter);
@@ -84,30 +98,33 @@ bool JoltPhysicsDirectSpaceState3D::_cast_motion_impl(const JPH::Shape &p_jolt_s
 		return false;
 	}
 
-	const JPH::RVec3 base_offset = transform_com.GetTranslation();
-
 	JoltCustomMotionShape motion_shape(static_cast<const JPH::ConvexShape &>(p_jolt_shape));
 
 	auto collides = [&](const JPH::Body &p_other_body, float p_fraction) {
-		motion_shape.set_motion(motion_local * p_fraction);
+		const Transform3D sample = p_query && p_fraction != 0.0f ? sample_transform(p_fraction) : p_transform_com;
+		if (!p_query) {
+			motion_shape.set_motion(motion_local * p_fraction);
+		}
 
 		const JPH::TransformedShape other_shape = p_other_body.GetTransformedShape();
 
-		JoltQueryCollectorAny<JPH::CollideShapeCollector> collector;
+		auto overlaps = [&](const JPH::Shape &p_shape, const JPH::RMat44 &p_pose) {
+			const JPH::RVec3 base_offset = p_pose.GetTranslation();
+			JoltQueryCollectorAny<JPH::CollideShapeCollector> collector;
+			if (p_use_edge_removal) {
+				JPH::CollideShapeSettings eier_settings = p_settings;
+				eier_settings.mActiveEdgeMode = JPH::EActiveEdgeMode::CollideWithAll;
+				eier_settings.mCollectFacesMode = JPH::ECollectFacesMode::CollectFaces;
+				JPH::InternalEdgeRemovingCollector eier_collector(collector, JPH::cDefaultInternalEdgeRemovalVertexToleranceSq);
+				other_shape.CollideShape(&p_shape, scale, p_pose, eier_settings, base_offset, eier_collector, p_shape_filter);
+				eier_collector.Flush();
+			} else {
+				other_shape.CollideShape(&p_shape, scale, p_pose, p_settings, base_offset, collector, p_shape_filter);
+			}
+			return collector.had_hit();
+		};
 
-		if (p_use_edge_removal) {
-			JPH::CollideShapeSettings eier_settings = p_settings;
-			eier_settings.mActiveEdgeMode = JPH::EActiveEdgeMode::CollideWithAll;
-			eier_settings.mCollectFacesMode = JPH::ECollectFacesMode::CollectFaces;
-
-			JPH::InternalEdgeRemovingCollector eier_collector(collector, JPH::cDefaultInternalEdgeRemovalVertexToleranceSq);
-			other_shape.CollideShape(&motion_shape, scale, transform_com, eier_settings, base_offset, eier_collector, p_shape_filter);
-			eier_collector.Flush();
-		} else {
-			other_shape.CollideShape(&motion_shape, scale, transform_com, p_settings, base_offset, collector, p_shape_filter);
-		}
-
-		return collector.had_hit();
+		return p_query ? overlaps(p_jolt_shape, to_jolt_r(sample)) : overlaps(motion_shape, transform_com);
 	};
 
 	// Figure out the number of steps we need in our binary search in order to achieve millimeter precision, within reason.
@@ -455,8 +472,9 @@ bool JoltPhysicsDirectSpaceState3D::intersect_ray(const RayParameters &p_paramet
 
 	const JoltQueryFilter3D query_filter(*this, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, p_parameters.exclude, p_parameters.pick_ray);
 
-	const JPH::RVec3 from = to_jolt_r(p_parameters.from);
-	const JPH::RVec3 to = to_jolt_r(p_parameters.to);
+	const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
+	const JPH::RVec3 from = to_jolt_r(derivation.derive_position(p_parameters.from));
+	const JPH::RVec3 to = to_jolt_r(derivation.derive_position(p_parameters.to));
 	const JPH::Vec3 vector = JPH::Vec3(to - from);
 	const JPH::RRayCast ray(from, vector);
 
@@ -522,7 +540,8 @@ int JoltPhysicsDirectSpaceState3D::intersect_point(const PointParameters &p_para
 
 	const JoltQueryFilter3D query_filter(*this, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, p_parameters.exclude);
 	JoltQueryCollectorAnyMulti<JPH::CollidePointCollector, 32> collector(p_result_max);
-	space->get_narrow_phase_query().CollidePoint(to_jolt_r(p_parameters.position), collector, query_filter, query_filter, query_filter);
+	const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
+	space->get_narrow_phase_query().CollidePoint(to_jolt_r(derivation.derive_position(p_parameters.position)), collector, query_filter, query_filter, query_filter);
 
 	const int hit_count = collector.get_hit_count();
 
@@ -564,7 +583,8 @@ int JoltPhysicsDirectSpaceState3D::intersect_shape(const ShapeParameters &p_para
 	const JPH::ShapeRefC jolt_shape = shape->try_build();
 	ERR_FAIL_NULL_V(jolt_shape, 0);
 
-	Transform3D transform = p_parameters.transform;
+	const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
+	Transform3D transform = derivation.derive_transform(p_parameters.transform);
 	JOLT_ENSURE_SCALE_NOT_ZERO(transform, "intersect_shape was passed an invalid transform.");
 
 	Vector3 scale;
@@ -608,7 +628,7 @@ int JoltPhysicsDirectSpaceState3D::intersect_shape(const ShapeParameters &p_para
 
 bool JoltPhysicsDirectSpaceState3D::cast_motion(const ShapeParameters &p_parameters, real_t &r_closest_safe, real_t &r_closest_unsafe, ShapeRestInfo *r_info) {
 	ERR_FAIL_COND_V_MSG(space->is_stepping(), false, "cast_motion must not be called while the physics space is being stepped.");
-	ERR_FAIL_COND_V_MSG(r_info != nullptr, false, "Providing rest info as part of cast_motion is not supported when using Jolt Physics.");
+	ERR_FAIL_COND_V_MSG(r_info != nullptr && p_parameters.node_3d_id.is_null(), false, "Providing rest info as part of cast_motion is not supported when using Jolt Physics without a Node3D query.");
 
 	space->flush_pending_objects();
 
@@ -618,7 +638,8 @@ bool JoltPhysicsDirectSpaceState3D::cast_motion(const ShapeParameters &p_paramet
 	const JPH::ShapeRefC jolt_shape = shape->try_build();
 	ERR_FAIL_NULL_V(jolt_shape, false);
 
-	Transform3D transform = p_parameters.transform;
+	const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
+	Transform3D transform = derivation.derive_transform(p_parameters.transform);
 	JOLT_ENSURE_SCALE_NOT_ZERO(transform, "cast_motion (maybe from ShapeCast3D?) was passed an invalid transform.");
 
 	Vector3 scale;
@@ -632,7 +653,16 @@ bool JoltPhysicsDirectSpaceState3D::cast_motion(const ShapeParameters &p_paramet
 	settings.mMaxSeparationDistance = (float)p_parameters.margin;
 
 	const JoltQueryFilter3D query_filter(*this, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, p_parameters.exclude);
-	_cast_motion_impl(*jolt_shape, transform_com, scale, p_parameters.motion, JoltProjectSettings::use_enhanced_internal_edge_removal_for_queries, true, settings, query_filter, query_filter, query_filter, JPH::ShapeFilter(), r_closest_safe, r_closest_unsafe);
+	_cast_motion_impl(*jolt_shape, transform_com, scale, p_parameters.motion, JoltProjectSettings::use_enhanced_internal_edge_removal_for_queries, true, settings, query_filter, query_filter, query_filter, JPH::ShapeFilter(), r_closest_safe, r_closest_unsafe, derivation.has_node ? &p_parameters : nullptr, &derivation);
+	if (r_info) {
+		*r_info = ShapeRestInfo();
+		if (r_closest_unsafe < 1.0 || r_closest_safe < 1.0) {
+			ShapeParameters at_contact = p_parameters;
+			at_contact.transform = at_contact.transform.translated(at_contact.motion * r_closest_unsafe);
+			at_contact.motion = Vector3();
+			rest_info(at_contact, r_info);
+		}
+	}
 
 	return true;
 }
@@ -654,7 +684,8 @@ bool JoltPhysicsDirectSpaceState3D::collide_shape(const ShapeParameters &p_param
 	const JPH::ShapeRefC jolt_shape = shape->try_build();
 	ERR_FAIL_NULL_V(jolt_shape, false);
 
-	Transform3D transform = p_parameters.transform;
+	const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
+	Transform3D transform = derivation.derive_transform(p_parameters.transform);
 	JOLT_ENSURE_SCALE_NOT_ZERO(transform, "collide_shape was passed an invalid transform.");
 
 	Vector3 scale;
@@ -723,7 +754,8 @@ bool JoltPhysicsDirectSpaceState3D::rest_info(const ShapeParameters &p_parameter
 	const JPH::ShapeRefC jolt_shape = shape->try_build();
 	ERR_FAIL_NULL_V(jolt_shape, false);
 
-	Transform3D transform = p_parameters.transform;
+	const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
+	Transform3D transform = derivation.derive_transform(p_parameters.transform);
 	JOLT_ENSURE_SCALE_NOT_ZERO(transform, "get_rest_info (maybe from ShapeCast3D?) was passed an invalid transform.");
 
 	Vector3 scale;

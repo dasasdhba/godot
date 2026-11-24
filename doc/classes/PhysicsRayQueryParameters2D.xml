@@ -25,6 +25,9 @@
 		</method>
 	</methods>
 	<members>
+		<member name="canvas_item" type="CanvasItem" setter="set_canvas_item" getter="get_canvas_item">
+			If assigned, the two endpoints are passed independently through [method CanvasItem.get_derived_global_transform] as transform origins before testing.
+		</member>
 		<member name="collide_with_areas" type="bool" setter="set_collide_with_areas" getter="is_collide_with_areas_enabled" default="false">
 			If [code]true[/code], the query will take [Area2D]s into account.
 		</member>

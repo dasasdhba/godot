@@ -389,6 +389,16 @@ void CanvasItem::_redraw_callback() {
 	pending_update = false; // Don't change to false until finished drawing (avoid recursive update).
 }
 
+Transform2D CanvasItem::get_derived_global_transform(const Transform2D &p_global_transform) const {
+	ERR_READ_THREAD_GUARD_V(Transform2D());
+	const CanvasItem *parent = get_parent_item();
+	if (!parent) {
+		return p_global_transform;
+	}
+	const Transform2D parent_global = parent->get_global_transform();
+	return parent_global * (parent_global.affine_inverse() * p_global_transform);
+}
+
 Transform2D CanvasItem::get_global_transform_with_canvas() const {
 	ERR_READ_THREAD_GUARD_V(Transform2D());
 	if (canvas_layer) {
@@ -1752,6 +1762,7 @@ void CanvasItem::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("draw_end_animation"), &CanvasItem::draw_end_animation);
 	ClassDB::bind_method(D_METHOD("get_transform"), &CanvasItem::get_transform);
 	ClassDB::bind_method(D_METHOD("get_global_transform"), &CanvasItem::get_global_transform);
+	ClassDB::bind_method(D_METHOD("get_derived_global_transform", "global_transform"), &CanvasItem::get_derived_global_transform);
 	ClassDB::bind_method(D_METHOD("get_global_transform_with_canvas"), &CanvasItem::get_global_transform_with_canvas);
 	ClassDB::bind_method(D_METHOD("get_viewport_transform"), &CanvasItem::get_viewport_transform);
 	ClassDB::bind_method(D_METHOD("get_viewport_rect"), &CanvasItem::get_viewport_rect);

@@ -143,44 +143,51 @@ protected:
 
 public:
 	virtual bool intersect_ray(const RayParameters &p_parameters, RayResult &r_result) override {
+		const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
 		exclude = &p_parameters.exclude;
 		bool ret = false;
-		GDVIRTUAL_CALL(_intersect_ray, p_parameters.from, p_parameters.to, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, p_parameters.hit_from_inside, p_parameters.hit_back_faces, p_parameters.pick_ray, &r_result, ret);
+		GDVIRTUAL_CALL(_intersect_ray, derivation.derive_position(p_parameters.from), derivation.derive_position(p_parameters.to), p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, p_parameters.hit_from_inside, p_parameters.hit_back_faces, p_parameters.pick_ray, &r_result, ret);
 		exclude = nullptr;
 		return ret;
 	}
 	virtual int intersect_point(const PointParameters &p_parameters, ShapeResult *r_results, int p_result_max) override {
+		const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
 		exclude = &p_parameters.exclude;
 		int ret = false;
-		GDVIRTUAL_CALL(_intersect_point, p_parameters.position, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_results, p_result_max, ret);
+		GDVIRTUAL_CALL(_intersect_point, derivation.derive_position(p_parameters.position), p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_results, p_result_max, ret);
 		exclude = nullptr;
 		return ret;
 	}
 	virtual int intersect_shape(const ShapeParameters &p_parameters, ShapeResult *r_results, int p_result_max) override {
+		const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
 		exclude = &p_parameters.exclude;
 		int ret = 0;
-		GDVIRTUAL_CALL(_intersect_shape, p_parameters.shape_rid, p_parameters.transform, p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_results, p_result_max, ret);
+		GDVIRTUAL_CALL(_intersect_shape, p_parameters.shape_rid, derivation.derive_transform(p_parameters.transform), derivation.has_node ? Vector3() : p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_results, p_result_max, ret);
 		exclude = nullptr;
 		return ret;
 	}
 	virtual bool cast_motion(const ShapeParameters &p_parameters, real_t &p_closest_safe, real_t &p_closest_unsafe, ShapeRestInfo *r_info = nullptr) override {
+		const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
+		ERR_FAIL_COND_V_MSG(derivation.has_node && p_parameters.motion != Vector3(), false, "Node3D-derived motion sampling is not supported by this physics extension.");
 		exclude = &p_parameters.exclude;
 		bool ret = false;
-		GDVIRTUAL_CALL(_cast_motion, p_parameters.shape_rid, p_parameters.transform, p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, &p_closest_safe, &p_closest_unsafe, r_info, ret);
+		GDVIRTUAL_CALL(_cast_motion, p_parameters.shape_rid, derivation.derive_transform(p_parameters.transform), p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, &p_closest_safe, &p_closest_unsafe, r_info, ret);
 		exclude = nullptr;
 		return ret;
 	}
 	virtual bool collide_shape(const ShapeParameters &p_parameters, Vector3 *r_results, int p_result_max, int &r_result_count) override {
+		const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
 		exclude = &p_parameters.exclude;
 		bool ret = false;
-		GDVIRTUAL_CALL(_collide_shape, p_parameters.shape_rid, p_parameters.transform, p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_results, p_result_max, &r_result_count, ret);
+		GDVIRTUAL_CALL(_collide_shape, p_parameters.shape_rid, derivation.derive_transform(p_parameters.transform), derivation.has_node ? Vector3() : p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_results, p_result_max, &r_result_count, ret);
 		exclude = nullptr;
 		return ret;
 	}
 	virtual bool rest_info(const ShapeParameters &p_parameters, ShapeRestInfo *r_info) override {
+		const GlobalTransformDerivation3D derivation = get_query_transform_derivation(p_parameters.node_3d_id);
 		exclude = &p_parameters.exclude;
 		bool ret = false;
-		GDVIRTUAL_CALL(_rest_info, p_parameters.shape_rid, p_parameters.transform, p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_info, ret);
+		GDVIRTUAL_CALL(_rest_info, p_parameters.shape_rid, derivation.derive_transform(p_parameters.transform), derivation.has_node ? Vector3() : p_parameters.motion, p_parameters.margin, p_parameters.collision_mask, p_parameters.collide_with_bodies, p_parameters.collide_with_areas, r_info, ret);
 		exclude = nullptr;
 		return ret;
 	}

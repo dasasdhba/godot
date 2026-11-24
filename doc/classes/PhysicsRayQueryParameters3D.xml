@@ -50,5 +50,8 @@
 		<member name="to" type="Vector3" setter="set_to" getter="get_to" default="Vector3(0, 0, 0)">
 			The ending point of the ray being queried for, in global coordinates.
 		</member>
+		<member name="node_3d" type="Node3D" setter="set_node_3d" getter="get_node_3d">
+			If assigned, the two endpoints are passed independently through [method Node3D.get_derived_global_transform] as transform origins before testing.
+		</member>
 	</members>
 </class>

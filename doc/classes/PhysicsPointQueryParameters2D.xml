@@ -9,6 +9,9 @@
 	<tutorials>
 	</tutorials>
 	<members>
+		<member name="canvas_item" type="CanvasItem" setter="set_canvas_item" getter="get_canvas_item">
+			If assigned, the query point is passed through [method CanvasItem.get_derived_global_transform] as a transform origin before testing.
+		</member>
 		<member name="canvas_instance_id" type="int" setter="set_canvas_instance_id" getter="get_canvas_instance_id" default="0">
 			If different from [code]0[/code], restricts the query to a specific canvas layer specified by its instance ID. See [method Object.get_instance_id].
 			If [code]0[/code], restricts the query to the Viewport's default canvas layer.

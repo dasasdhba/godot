@@ -492,6 +492,13 @@
 				[b]Note:[/b] For screen-space coordinates (e.g. when using a non-embedded [Popup]), you can use [method DisplayServer.mouse_get_position].
 			</description>
 		</method>
+		<method name="get_derived_global_transform" qualifiers="const">
+			<return type="Transform2D" />
+			<param index="0" name="global_transform" type="Transform2D" />
+			<description>
+				Converts [param global_transform] to this item's parent space and back to global space, without moving the item. For a [Node2D], this is the transform that would be read back after assigning the argument to [member Node2D.global_transform]. If there is no effective parent [CanvasItem], the transform is returned directly.
+			</description>
+		</method>
 		<method name="get_global_transform" qualifiers="const">
 			<return type="Transform2D" />
 			<description>

@@ -25,5 +25,8 @@
 		<member name="position" type="Vector3" setter="set_position" getter="get_position" default="Vector3(0, 0, 0)">
 			The position being queried for, in global coordinates.
 		</member>
+		<member name="node_3d" type="Node3D" setter="set_node_3d" getter="get_node_3d">
+			If assigned, the query point is passed through [method Node3D.get_derived_global_transform] as a transform origin before testing.
+		</member>
 	</members>
 </class>

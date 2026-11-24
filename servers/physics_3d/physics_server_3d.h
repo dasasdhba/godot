@@ -31,6 +31,7 @@
 #pragma once
 
 #include "core/io/resource.h"
+#include "core/math/transform_3d_derivation.h"
 #include "core/object/gdvirtual.gen.h"
 
 constexpr int MAX_CONTACTS_REPORTED_3D_MAX = 4096;
@@ -118,6 +119,7 @@ public:
 	PhysicsDirectBodyState3D();
 };
 
+class Node3D;
 class PhysicsRayQueryParameters3D;
 class PhysicsPointQueryParameters3D;
 class PhysicsShapeQueryParameters3D;
@@ -141,6 +143,8 @@ protected:
 	static void _bind_methods();
 
 public:
+	static GlobalTransformDerivation3D get_query_transform_derivation(ObjectID p_node_3d);
+
 	struct RayParameters {
 		Vector3 from;
 		Vector3 to;
@@ -154,6 +158,8 @@ public:
 		bool hit_back_faces = true;
 
 		bool pick_ray = false;
+
+		ObjectID node_3d_id;
 	};
 
 	struct RayResult {
@@ -182,6 +188,8 @@ public:
 
 		bool collide_with_bodies = true;
 		bool collide_with_areas = false;
+
+		ObjectID node_3d_id;
 	};
 
 	virtual int intersect_point(const PointParameters &p_parameters, ShapeResult *r_results, int p_result_max) = 0;
@@ -196,6 +204,12 @@ public:
 
 		bool collide_with_bodies = true;
 		bool collide_with_areas = false;
+
+		ObjectID node_3d_id;
+
+		Transform3D get_transform_at_fraction(real_t p_fraction, const GlobalTransformDerivation3D &p_derivation) const {
+			return p_derivation.derive_transform(transform.translated(motion * p_fraction));
+		}
 	};
 
 	struct ShapeRestInfo {
@@ -848,6 +862,9 @@ public:
 	static Ref<PhysicsRayQueryParameters3D> create(Vector3 p_from, Vector3 p_to, uint32_t p_mask, const TypedArray<RID> &p_exclude);
 	const PhysicsDirectSpaceState3D::RayParameters &get_parameters() const { return parameters; }
 
+	void set_node_3d(Node3D *p_node_3d);
+	Node3D *get_node_3d() const;
+
 	void set_from(const Vector3 &p_from) { parameters.from = p_from; }
 	const Vector3 &get_from() const { return parameters.from; }
 
@@ -884,6 +901,9 @@ protected:
 public:
 	const PhysicsDirectSpaceState3D::PointParameters &get_parameters() const { return parameters; }
 
+	void set_node_3d(Node3D *p_node_3d);
+	Node3D *get_node_3d() const;
+
 	void set_position(const Vector3 &p_position) { parameters.position = p_position; }
 	const Vector3 &get_position() const { return parameters.position; }
 
@@ -912,6 +932,9 @@ protected:
 
 public:
 	const PhysicsDirectSpaceState3D::ShapeParameters &get_parameters() const { return parameters; }
+
+	void set_node_3d(Node3D *p_node_3d);
+	Node3D *get_node_3d() const;
 
 	void set_shape(const Ref<Resource> &p_shape_ref);
 	Ref<Resource> get_shape() const { return shape_ref; }

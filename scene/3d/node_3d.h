@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "core/math/transform_3d_derivation.h"
 #include "scene/main/node.h"
 #include "scene/resources/3d/world_3d.h"
 
@@ -279,6 +280,8 @@ public:
 	Basis get_basis() const;
 	Quaternion get_quaternion() const;
 	Transform3D get_global_transform() const;
+	GlobalTransformDerivation3D get_global_transform_derivation() const;
+	Transform3D get_derived_global_transform(const Transform3D &p_global_transform) const;
 
 	Transform3D get_global_transform_interpolated();
 	bool update_client_physics_interpolation_data();

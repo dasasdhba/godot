@@ -645,6 +645,23 @@ Transform3D Node3D::get_global_transform_interpolated() {
 #endif
 }
 
+GlobalTransformDerivation3D Node3D::get_global_transform_derivation() const {
+	ERR_READ_THREAD_GUARD_V(GlobalTransformDerivation3D());
+	GlobalTransformDerivation3D derivation;
+	derivation.has_node = true;
+	derivation.disable_scale = data.disable_scale;
+	if (data.parent && !data.top_level) {
+		derivation.parent = data.parent->get_global_transform();
+		derivation.parent_inverse = derivation.parent.affine_inverse();
+		derivation.has_parent = true;
+	}
+	return derivation;
+}
+
+Transform3D Node3D::get_derived_global_transform(const Transform3D &p_global_transform) const {
+	return get_global_transform_derivation().derive_transform(p_global_transform);
+}
+
 Transform3D Node3D::get_global_transform() const {
 	ERR_FAIL_COND_V(!is_inside_tree(), Transform3D());
 
@@ -1451,6 +1468,7 @@ void Node3D::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_global_transform", "global"), &Node3D::set_global_transform);
 	ClassDB::bind_method(D_METHOD("get_global_transform"), &Node3D::get_global_transform);
+	ClassDB::bind_method(D_METHOD("get_derived_global_transform", "global_transform"), &Node3D::get_derived_global_transform);
 	ClassDB::bind_method(D_METHOD("get_global_transform_interpolated"), &Node3D::get_global_transform_interpolated);
 	ClassDB::bind_method(D_METHOD("set_global_position", "position"), &Node3D::set_global_position);
 	ClassDB::bind_method(D_METHOD("get_global_position"), &Node3D::get_global_position);

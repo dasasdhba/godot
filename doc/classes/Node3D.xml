@@ -47,6 +47,13 @@
 				Returns all the [EditorNode3DGizmo] objects attached to this node. Only works in the editor.
 			</description>
 		</method>
+		<method name="get_derived_global_transform" qualifiers="const">
+			<return type="Transform3D" />
+			<param index="0" name="global_transform" type="Transform3D" />
+			<description>
+				Returns the transform that would be read back after assigning [param global_transform] to [member global_transform], without moving the node. This includes the conversion through parent space and, when disabled, removal of global scale.
+			</description>
+		</method>
 		<method name="get_global_transform_interpolated">
 			<return type="Transform3D" />
 			<description>

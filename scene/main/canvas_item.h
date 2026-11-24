@@ -428,6 +428,7 @@ public:
 	virtual Transform2D get_transform() const = 0;
 
 	virtual Transform2D get_global_transform() const;
+	Transform2D get_derived_global_transform(const Transform2D &p_global_transform) const;
 	virtual Transform2D get_global_transform_const() const;
 	virtual Transform2D get_global_transform_with_canvas() const;
 	virtual Transform2D get_screen_transform() const;

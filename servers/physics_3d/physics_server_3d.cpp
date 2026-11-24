@@ -30,6 +30,8 @@
 
 #include "physics_server_3d.h"
 
+#include "scene/3d/node_3d.h"
+
 #include "core/config/project_settings.h"
 #include "core/object/class_db.h"
 #include "core/variant/typed_array.h"
@@ -55,6 +57,14 @@ void PhysicsServer3DRenderingServerHandler::_bind_methods() {
 }
 
 PhysicsServer3D *PhysicsServer3D::singleton = nullptr;
+
+GlobalTransformDerivation3D PhysicsDirectSpaceState3D::get_query_transform_derivation(ObjectID p_node_3d) {
+	if (p_node_3d.is_null()) {
+		return GlobalTransformDerivation3D();
+	}
+	const Node3D *node = Object::cast_to<Node3D>(ObjectDB::get_instance(p_node_3d));
+	return node ? node->get_global_transform_derivation() : GlobalTransformDerivation3D();
+}
 
 void PhysicsDirectBodyState3D::integrate_forces() {
 	real_t step = get_step();
@@ -199,7 +209,19 @@ TypedArray<RID> PhysicsRayQueryParameters3D::get_exclude() const {
 	return ret;
 }
 
+void PhysicsRayQueryParameters3D::set_node_3d(Node3D *p_node_3d) {
+	parameters.node_3d_id = p_node_3d ? p_node_3d->get_instance_id() : ObjectID();
+}
+
+Node3D *PhysicsRayQueryParameters3D::get_node_3d() const {
+	return Object::cast_to<Node3D>(ObjectDB::get_instance(parameters.node_3d_id));
+}
+
 void PhysicsRayQueryParameters3D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_node_3d", "node_3d"), &PhysicsRayQueryParameters3D::set_node_3d);
+	ClassDB::bind_method(D_METHOD("get_node_3d"), &PhysicsRayQueryParameters3D::get_node_3d);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "node_3d", PROPERTY_HINT_NODE_TYPE, "Node3D"), "set_node_3d", "get_node_3d");
+
 	ClassDB::bind_static_method("PhysicsRayQueryParameters3D", D_METHOD("create", "from", "to", "collision_mask", "exclude"), &PhysicsRayQueryParameters3D::create, DEFVAL(UINT32_MAX), DEFVAL(TypedArray<RID>()));
 
 	ClassDB::bind_method(D_METHOD("set_from", "from"), &PhysicsRayQueryParameters3D::set_from);
@@ -265,7 +287,19 @@ TypedArray<RID> PhysicsPointQueryParameters3D::get_exclude() const {
 	return ret;
 }
 
+void PhysicsPointQueryParameters3D::set_node_3d(Node3D *p_node_3d) {
+	parameters.node_3d_id = p_node_3d ? p_node_3d->get_instance_id() : ObjectID();
+}
+
+Node3D *PhysicsPointQueryParameters3D::get_node_3d() const {
+	return Object::cast_to<Node3D>(ObjectDB::get_instance(parameters.node_3d_id));
+}
+
 void PhysicsPointQueryParameters3D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_node_3d", "node_3d"), &PhysicsPointQueryParameters3D::set_node_3d);
+	ClassDB::bind_method(D_METHOD("get_node_3d"), &PhysicsPointQueryParameters3D::get_node_3d);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "node_3d", PROPERTY_HINT_NODE_TYPE, "Node3D"), "set_node_3d", "get_node_3d");
+
 	ClassDB::bind_method(D_METHOD("set_position", "position"), &PhysicsPointQueryParameters3D::set_position);
 	ClassDB::bind_method(D_METHOD("get_position"), &PhysicsPointQueryParameters3D::get_position);
 
@@ -320,7 +354,19 @@ TypedArray<RID> PhysicsShapeQueryParameters3D::get_exclude() const {
 	return ret;
 }
 
+void PhysicsShapeQueryParameters3D::set_node_3d(Node3D *p_node_3d) {
+	parameters.node_3d_id = p_node_3d ? p_node_3d->get_instance_id() : ObjectID();
+}
+
+Node3D *PhysicsShapeQueryParameters3D::get_node_3d() const {
+	return Object::cast_to<Node3D>(ObjectDB::get_instance(parameters.node_3d_id));
+}
+
 void PhysicsShapeQueryParameters3D::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("set_node_3d", "node_3d"), &PhysicsShapeQueryParameters3D::set_node_3d);
+	ClassDB::bind_method(D_METHOD("get_node_3d"), &PhysicsShapeQueryParameters3D::get_node_3d);
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "node_3d", PROPERTY_HINT_NODE_TYPE, "Node3D"), "set_node_3d", "get_node_3d");
+
 	ClassDB::bind_method(D_METHOD("set_shape", "shape"), &PhysicsShapeQueryParameters3D::set_shape);
 	ClassDB::bind_method(D_METHOD("get_shape"), &PhysicsShapeQueryParameters3D::get_shape);
 
